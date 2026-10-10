@@ -11,6 +11,8 @@ let subSelectedIndex = 0;
 
 let inventory = [];
 let companions = [];
+let companionPickups = [];
+let itemPickups = [];
 
 let mainCharacter;
 let obstacles = [];

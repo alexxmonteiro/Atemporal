@@ -11,6 +11,27 @@ function keyPressed() {
     return;
   }
 
+  if (gameState === STATE_PLAYING) {
+    if (key === 'e' || key === 'E') {
+      for (let pickup of companionPickups) {
+        if (!pickup.collected && pickup.checkCollision(mainCharacter)) {
+          pickup.collected = true;
+          companions.push({ name: pickup.name, equipped: false });
+          return;
+        }
+      }
+
+      for (let pickup of itemPickups) {
+        if (!pickup.collected && pickup.checkCollision(mainCharacter)) {
+          pickup.collected = true;
+          inventory.push({ name: pickup.name, equipped: false });
+          return;
+        }
+      }
+    }
+    return;
+  }
+
   if (gameState === STATE_MENU_MAIN) {
     if (key === 'w' || key === 'W' || keyCode === UP_ARROW) {
       selectedIndex = (selectedIndex - 1 + menuOptions.length) % menuOptions.length;
