@@ -2,6 +2,7 @@ const STATE_PLAYING = "PLAYING";
 const STATE_MENU_MAIN = "MENU_MAIN";
 const STATE_INVENTORY = "INVENTORY";
 const STATE_COMPANIONS = "COMPANIONS";
+const STATE_BATTLE_TRANSITION = "BATTLE_TRANSITION";
 
 let gameState = STATE_PLAYING;
 
@@ -14,6 +15,7 @@ let companions = [];
 let companionPickups = [];
 let itemPickups = [];
 let doors = [];
+let enemies = [];
 let currentLevel = 1;
 
 let mainCharacter;

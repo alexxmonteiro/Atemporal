@@ -3,6 +3,15 @@ function isEnterPressed() {
 }
 
 function keyPressed() {
+  if (key === 'Escape' || keyCode === 27) {
+    if (gameState === STATE_BATTLE_TRANSITION) {
+      gameState = STATE_PLAYING;
+      mainCharacter.isFrozen = false;
+      enemies = enemies.filter(enemy => !enemy.defeated);
+      return;
+    }
+  }
+
   if (key === 'q' || key === 'Q') {
     if (gameState === STATE_PLAYING) {
       gameState = STATE_MENU_MAIN;

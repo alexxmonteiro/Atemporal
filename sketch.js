@@ -9,6 +9,7 @@ function setupLevel(level) {
   companionPickups = [];
   itemPickups = [];
   doors = [];
+  enemies = [];
 
   if (level === 1) {
     obstacles.push(new Obstacle(300, 200, 150, 40));
@@ -20,11 +21,18 @@ function setupLevel(level) {
     itemPickups.push(new ItemPickup(200, 300, "Poção de Vida", "heal", 50));
 
     doors.push(new Door(700, 150, 40, 60));
+
+    enemies.push(new Enemy(500, 150, 'DOWN'));
   } else if (level === 2) {
     obstacles.push(new Obstacle(200, 200, 300, 30));
 
     doors.push(new Door(650, 400, 40, 60));
+
+    enemies.push(new Enemy(200, 400, 'RIGHT'));
   }
+
+  mainCharacter.isFrozen = false;
+  gameState = STATE_PLAYING;
 }
 
 function nextLevel() {
@@ -56,6 +64,23 @@ function draw() {
     mainCharacter.move(obstacles);
   }
 
+  for (let enemy of enemies) {
+    if (gameState === STATE_PLAYING) {
+      enemy.update(mainCharacter);
+      
+      if (enemy.checkVision(mainCharacter)) {
+        mainCharacter.isFrozen = true;
+      }
+      
+      if (enemy.checkCollision(mainCharacter)) {
+        mainCharacter.isFrozen = true;
+        enemy.defeated = true;
+        gameState = STATE_BATTLE_TRANSITION;
+      }
+    }
+    enemy.draw();
+  }
+
   for (let door of doors) {
     door.draw();
     if (gameState === STATE_PLAYING && door.checkInteraction(mainCharacter)) {
@@ -84,6 +109,11 @@ function draw() {
   mainCharacter.draw();
 
   if (gameState !== STATE_PLAYING) {
-    drawMenuOverlay();
+    if (gameState === STATE_BATTLE_TRANSITION) {
+      fill(0);
+      rect(0, 0, width, height);
+    } else {
+      drawMenuOverlay();
+    }
   }
 }

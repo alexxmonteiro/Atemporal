@@ -7,6 +7,7 @@ class MainCharacter {
     this.vy = 0;
     this.acc = 0.8;
     this.friction = 0.90;
+    this.isFrozen = false;
 
     this.maxHp = 100;
     this.hp = 100;
@@ -36,6 +37,15 @@ class MainCharacter {
   }
 
   move(obstacles) {
+    if (this.isFrozen) {
+      this.acc = 0;
+      this.vx = 0;
+      this.vy = 0;
+      return;
+    } else {
+      this.acc = 0.8;
+    }
+
     if (keyIsPressed && (key === 'a' || key === 'A')) this.vx -= this.acc;
     if (keyIsPressed && (key === 'd' || key === 'D')) this.vx += this.acc;
     if (keyIsPressed && (key === 'w' || key === 'W')) this.vy -= this.acc;
