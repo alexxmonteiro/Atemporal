@@ -13,6 +13,13 @@ function keyPressed() {
 
   if (gameState === STATE_PLAYING) {
     if (key === 'e' || key === 'E') {
+      for (let door of doors) {
+        if (door.checkInteraction(mainCharacter)) {
+          nextLevel();
+          return;
+        }
+      }
+
       for (let pickup of companionPickups) {
         if (!pickup.collected && pickup.checkCollision(mainCharacter)) {
           pickup.collected = true;

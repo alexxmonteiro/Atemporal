@@ -1,14 +1,44 @@
 function setup() {
   createCanvas(windowWidth, windowHeight);
   mainCharacter = new MainCharacter(100, 100);
+  setupLevel(1);
+}
+
+function setupLevel(level) {
+  obstacles = [];
+  companionPickups = [];
+  itemPickups = [];
+  doors = [];
+
+  if (level === 1) {
+    obstacles.push(new Obstacle(300, 200, 150, 40));
+    obstacles.push(new Obstacle(500, 350, 50, 200));
+
+    companionPickups.push(new CompanionPickup(250, 150, "Miséria"));
+    companionPickups.push(new CompanionPickup(450, 400, "Faísca"));
+
+    itemPickups.push(new ItemPickup(200, 300, "Poção de Vida"));
+    
+    doors.push(new Door(700, 150, 40, 60));
+  } else if (level === 2) {
+    obstacles.push(new Obstacle(200, 200, 300, 30));
+    
+    doors.push(new Door(650, 400, 40, 60));
+  }
+}
+
+function nextLevel() {
+  currentLevel++;
+  if (currentLevel > 2) {
+    currentLevel = 1;
+  }
   
-  obstacles.push(new Obstacle(300, 200, 150, 40));
-  obstacles.push(new Obstacle(500, 350, 50, 200));
+  mainCharacter.posX = 100;
+  mainCharacter.posY = 100;
+  mainCharacter.vx = 0;
+  mainCharacter.vy = 0;
 
-  companionPickups.push(new CompanionPickup(250, 150, "Miséria"));
-  companionPickups.push(new CompanionPickup(450, 400, "Faísca"));
-
-  itemPickups.push(new ItemPickup(200, 300, "Poção de Vida"));
+  setupLevel(currentLevel);
 }
 
 function windowResized() {
@@ -26,10 +56,16 @@ function draw() {
     mainCharacter.move(obstacles);
   }
 
+  for (let door of doors) {
+    door.draw();
+    if (gameState === STATE_PLAYING && door.checkInteraction(mainCharacter)) {
+      door.drawPrompt();
+    }
+  }
+
   for (let pickup of companionPickups) {
     if (!pickup.collected) {
       pickup.draw();
-      
       if (gameState === STATE_PLAYING && pickup.checkCollision(mainCharacter)) {
         pickup.drawPrompt();
       }
@@ -39,7 +75,6 @@ function draw() {
   for (let pickup of itemPickups) {
     if (!pickup.collected) {
       pickup.draw();
-      
       if (gameState === STATE_PLAYING && pickup.checkCollision(mainCharacter)) {
         pickup.drawPrompt();
       }

@@ -13,6 +13,8 @@ let inventory = [];
 let companions = [];
 let companionPickups = [];
 let itemPickups = [];
+let doors = [];
+let currentLevel = 1;
 
 let mainCharacter;
 let obstacles = [];
