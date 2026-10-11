@@ -23,7 +23,13 @@ function keyPressed() {
       for (let pickup of companionPickups) {
         if (!pickup.collected && pickup.checkCollision(mainCharacter)) {
           pickup.collected = true;
-          companions.push({ name: pickup.name, equipped: false });
+          companions.push({ 
+            name: pickup.name, 
+            attackBonus: pickup.attackBonus, 
+            hpBonus: pickup.hpBonus, 
+            luckBonus: pickup.luckBonus,
+            equipped: false 
+          });
           return;
         }
       }
@@ -31,7 +37,11 @@ function keyPressed() {
       for (let pickup of itemPickups) {
         if (!pickup.collected && pickup.checkCollision(mainCharacter)) {
           pickup.collected = true;
-          inventory.push({ name: pickup.name, equipped: false });
+          inventory.push({ 
+            name: pickup.name, 
+            effectType: pickup.effectType, 
+            effectValue: pickup.effectValue 
+          });
           return;
         }
       }
@@ -64,7 +74,19 @@ function keyPressed() {
     } else if (key === 's' || key === 'S' || keyCode === DOWN_ARROW) {
       if (list.length > 0) subSelectedIndex = (subSelectedIndex + 1) % list.length;
     } else if (isEnterPressed() && list.length > 0) {
-      list[subSelectedIndex].equipped = !list[subSelectedIndex].equipped;
+      if (gameState === STATE_INVENTORY) {
+        let item = list[subSelectedIndex];
+        if (item.effectType === 'heal') {
+          let stats = mainCharacter.getStats();
+          mainCharacter.hp = Math.min(stats.maxHp, mainCharacter.hp + item.effectValue);
+        }
+        inventory.splice(subSelectedIndex, 1);
+        if (subSelectedIndex >= inventory.length && inventory.length > 0) {
+          subSelectedIndex = inventory.length - 1;
+        }
+      } else {
+        list[subSelectedIndex].equipped = !list[subSelectedIndex].equipped;
+      }
     } else if (keyCode === BACKSPACE || key === 'Escape') {
       gameState = STATE_MENU_MAIN;
     }

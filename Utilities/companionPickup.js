@@ -1,9 +1,12 @@
 class CompanionPickup {
-  constructor(x, y, name) {
+  constructor(x, y, name, attackBonus, hpBonus, luckBonus) {
     this.x = x;
     this.y = y;
     this.size = 25;
     this.name = name;
+    this.attackBonus = attackBonus;
+    this.hpBonus = hpBonus;
+    this.luckBonus = luckBonus;
     this.collected = false;
   }
 

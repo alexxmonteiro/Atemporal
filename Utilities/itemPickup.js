@@ -1,9 +1,11 @@
 class ItemPickup {
-  constructor(x, y, name) {
+  constructor(x, y, name, effectType, effectValue) {
     this.x = x;
     this.y = y;
     this.size = 25;
     this.name = name;
+    this.effectType = effectType;
+    this.effectValue = effectValue;
     this.collected = false;
   }
 

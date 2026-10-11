@@ -7,6 +7,32 @@ class MainCharacter {
     this.vy = 0;
     this.acc = 0.8;
     this.friction = 0.90;
+
+    this.maxHp = 100;
+    this.hp = 100;
+    this.baseAttack = 10;
+    this.baseLuck = 10;
+  }
+
+  getStats() {
+    let bonusAttack = 0;
+    let bonusHp = 0;
+    let bonusLuck = 0;
+
+    for (let comp of companions) {
+      if (comp.equipped) {
+        bonusAttack += comp.attackBonus;
+        bonusHp += comp.hpBonus;
+        bonusLuck += comp.luckBonus;
+      }
+    }
+
+    return {
+      attack: this.baseAttack + bonusAttack,
+      maxHp: this.maxHp + bonusHp,
+      luck: this.baseLuck + bonusLuck,
+      hp: Math.min(this.hp, this.maxHp + bonusHp)
+    };
   }
 
   move(obstacles) {
