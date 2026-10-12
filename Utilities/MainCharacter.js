@@ -6,7 +6,7 @@ class MainCharacter {
     this.vx = 0;
     this.vy = 0;
     this.acc = 0.8;
-    this.friction = 0.90;
+    this.friction = 0.80;
     this.isFrozen = false;
 
     this.maxHp = 100;

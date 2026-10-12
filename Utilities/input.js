@@ -2,14 +2,148 @@ function isEnterPressed() {
   return keyCode === ENTER || keyCode === RETURN || key === 'Enter';
 }
 
+function startBattle(enemy) {
+  currentEnemy = enemy;
+  currentEnemy.hp = currentEnemy.maxHp;
+  gameState = STATE_BATTLE;
+  battleState = BATTLE_MENU_MAIN;
+  battleSelectedIndex = 0;
+  battleLog = `Um ${currentEnemy.name} selvagem apareceu!`;
+  isPlayerTurn = true;
+  battleFinished = false;
+}
+
+function enemyTurn() {
+  if (currentEnemy.hp <= 0) return;
+
+  let enemyChoice = Math.floor(random(0, 2));
+  let stats = mainCharacter.getStats();
+
+  if (enemyChoice === 1) {
+    let hitChance = 0.5 + (stats.luck * 0.01); 
+    if (random() < hitChance) {
+      let dmg = 25;
+      mainCharacter.hp = Math.max(0, mainCharacter.hp - dmg);
+      battleLog = `O inimigo usou ATAQUE FORTE e acertou! -${dmg} HP`;
+    } else {
+      battleLog = `O inimigo usou ATAQUE FORTE, mas errou!`;
+    }
+  } else {
+    let hitChance = 0.8 + (stats.luck * 0.01);
+    if (random() < hitChance) {
+      let dmg = 10;
+      mainCharacter.hp = Math.max(0, mainCharacter.hp - dmg);
+      battleLog = `O inimigo usou ATAQUE FRACO e acertou! -${dmg} HP`;
+    } else {
+      battleLog = `O inimigo usou ATAQUE FRACO, mas errou!`;
+    }
+  }
+
+  if (mainCharacter.hp <= 0) {
+    battleLog = "Você foi derrotado! Pressione ESC para voltar.";
+    battleFinished = true;
+  } else {
+    isPlayerTurn = true;
+    battleState = BATTLE_MENU_MAIN;
+  }
+}
+
 function keyPressed() {
   if (key === 'Escape' || keyCode === 27) {
-    if (gameState === STATE_BATTLE_TRANSITION) {
+    if (gameState === STATE_BATTLE_TRANSITION || gameState === STATE_BATTLE) {
+      if (gameState === STATE_BATTLE && !battleFinished && mainCharacter.hp > 0) {
+        return;
+      }
       gameState = STATE_PLAYING;
       mainCharacter.isFrozen = false;
       enemies = enemies.filter(enemy => !enemy.defeated);
       return;
     }
+  }
+
+  if (gameState === STATE_BATTLE) {
+    if (battleFinished) {
+      if (isEnterPressed()) {
+        gameState = STATE_PLAYING;
+        mainCharacter.isFrozen = false;
+        if (currentEnemy.hp <= 0 || currentEnemy.spared) {
+          currentEnemy.defeated = true;
+        }
+        enemies = enemies.filter(enemy => !enemy.defeated);
+      }
+      return;
+    }
+
+    if (!isPlayerTurn) return;
+
+    if (battleState === BATTLE_MENU_MAIN) {
+      if (key === 'w' || key === 'W' || keyCode === UP_ARROW) {
+        battleSelectedIndex = (battleSelectedIndex - 1 + 2) % 2;
+      } else if (key === 's' || key === 'S' || keyCode === DOWN_ARROW) {
+        battleSelectedIndex = (battleSelectedIndex + 1) % 2;
+      } else if (isEnterPressed()) {
+        if (battleSelectedIndex === 0) {
+          battleState = BATTLE_MENU_FIGHT;
+          battleSubIndex = 0;
+        } else if (battleSelectedIndex === 1) {
+          if (currentEnemy.hp <= 25) {
+            battleLog = `Você poupou o ${currentEnemy.name} com sucesso!`;
+            currentEnemy.defeated = true;
+            battleFinished = true;
+            isPlayerTurn = false;
+          } else {
+            battleLog = `O inimigo está muito hostil! HP precisa estar <= 25.`;
+          }
+        }
+      }
+    } else if (battleState === BATTLE_MENU_FIGHT) {
+      if (key === 'w' || key === 'W' || keyCode === UP_ARROW || key === 's' || key === 'S' || keyCode === DOWN_ARROW) {
+        battleSubIndex = battleSubIndex === 0 ? 1 : 0;
+      } else if (keyCode === BACKSPACE || key === 'Escape') {
+        battleState = BATTLE_MENU_MAIN;
+      } else if (isEnterPressed()) {
+        let stats = mainCharacter.getStats();
+        
+        if (battleSubIndex === 0) {
+          mainCharacter.hp = Math.max(0, mainCharacter.hp - 5);
+          
+          let hitChance = 0.5 + (stats.luck * 0.01);
+          if (random() < hitChance) {
+            let dmg = stats.attack * 1.8 + 10;
+            currentEnemy.hp = Math.max(0, currentEnemy.hp - dmg);
+            battleLog = `Ataque Forte acertou! (-5 HP seu) Causou ${Math.round(dmg)} de dano!`;
+          } else {
+            battleLog = `Você usou Ataque Forte (-5 HP seu), mas errou o golpe!`;
+          }
+        } else {
+          let hitChance = 0.85 + (stats.luck * 0.01);
+          if (random() < hitChance) {
+            let dmg = stats.attack * 0.9;
+            currentEnemy.hp = Math.max(0, currentEnemy.hp - dmg);
+            battleLog = `Ataque Fraco acertou! Causou ${Math.round(dmg)} de dano.`;
+          } else {
+            battleLog = `Você usou Ataque Fraco, mas errou!`;
+          }
+        }
+
+        if (mainCharacter.hp <= 0) {
+          battleLog = "Você desmaiou devido ao esforço/dano! Pressione ENTER.";
+          battleFinished = true;
+        } else if (currentEnemy.hp <= 0) {
+          battleLog = `Você derrotou o ${currentEnemy.name}! Pressione ENTER para continuar.`;
+          battleFinished = true;
+        } else {
+          isPlayerTurn = false;
+          setTimeout(() => {
+            if (gameState === STATE_BATTLE && !battleFinished) {
+              enemyTurn();
+            }
+          }, 800);
+        }
+        battleState = BATTLE_MENU_MAIN;
+      }
+    }
+    return;
   }
 
   if (key === 'q' || key === 'Q') {

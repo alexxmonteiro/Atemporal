@@ -75,7 +75,7 @@ function draw() {
       if (enemy.checkCollision(mainCharacter)) {
         mainCharacter.isFrozen = true;
         enemy.defeated = true;
-        gameState = STATE_BATTLE_TRANSITION;
+        startBattle(enemy);
       }
     }
     enemy.draw();
@@ -112,6 +112,8 @@ function draw() {
     if (gameState === STATE_BATTLE_TRANSITION) {
       fill(0);
       rect(0, 0, width, height);
+    } else if (gameState === STATE_BATTLE) {
+      drawBattleScreen();
     } else {
       drawMenuOverlay();
     }

@@ -7,6 +7,10 @@ class Enemy {
     this.speed = 1.5;
     this.isChasing = false;
     this.visionLength = 150;
+    
+    this.maxHp = 50;
+    this.hp = 50;
+    this.name = "Inimigo Sombrio";
   }
 
   update(player) {
