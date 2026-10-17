@@ -35,6 +35,18 @@ function setupLevel(level) {
   gameState = STATE_PLAYING;
 }
 
+function resetGameToStart() {
+  currentLevel = 1;
+  mainCharacter.posX = 100;
+  mainCharacter.posY = 100;
+  mainCharacter.vx = 0;
+  mainCharacter.vy = 0;
+  mainCharacter.hp = mainCharacter.maxHp;
+  inventory = [];
+  companions = [];
+  setupLevel(currentLevel);
+}
+
 function nextLevel() {
   currentLevel++;
   if (currentLevel > 2) {
@@ -55,6 +67,25 @@ function windowResized() {
 
 function draw() {
   background("#ffffff");
+
+  let stats = mainCharacter.getStats();
+  let barWidth = 200;
+  let barHeight = 20;
+  let barX = 20;
+  let barY = 20;
+
+  fill(100, 100, 100);
+  noStroke();
+  rect(barX, barY, barWidth, barHeight, 5);
+
+  let hpPercent = Math.max(0, mainCharacter.hp) / stats.maxHp;
+  fill(0, 255, 0);
+  rect(barX, barY, barWidth * hpPercent, barHeight, 5);
+
+  fill(0);
+  textSize(12);
+  textAlign(LEFT, CENTER);
+  text(`HP: ${Math.max(0, mainCharacter.hp)} / ${stats.maxHp}`, barX + 10, barY + barHeight / 2);
 
   for (let obs of obstacles) {
     obs.draw();
@@ -114,6 +145,8 @@ function draw() {
       rect(0, 0, width, height);
     } else if (gameState === STATE_BATTLE) {
       drawBattleScreen();
+    } else if (gameState === STATE_GAME_OVER) {
+      drawGameOverScreen();
     } else {
       drawMenuOverlay();
     }

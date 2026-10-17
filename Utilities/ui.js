@@ -1,3 +1,16 @@
+function drawGameOverScreen() {
+  background(0);
+
+  fill(255, 0, 0);
+  textSize(48);
+  textAlign(CENTER, CENTER);
+  text("Você Morreu!", width / 2, height / 2 - 40);
+
+  fill(255);
+  textSize(20);
+  text("Aperte R para reviver", width / 2, height / 2 + 30);
+}
+
 function drawBattleScreen() {
   background(20, 20, 35);
 
@@ -72,7 +85,7 @@ function drawBattleScreen() {
   } else {
     if (battleState === BATTLE_MENU_MAIN) {
       let opt1 = battleSelectedIndex === 0 ? "> Atacar" : "  Atacar";
-      let opt2 = battleSelectedIndex === 1 ? "> Poupar (HP <= 25)" : "  Poupar (HP <= 25)";
+      let opt2 = battleSelectedIndex === 1 ? "> Bolsa" : "  Bolsa";
 
       fill(battleSelectedIndex === 0 ? "#ffcc00" : 255);
       text(opt1, width - 350, height - 110);
@@ -84,7 +97,7 @@ function drawBattleScreen() {
       textSize(11);
       text("W/S: Navegar | ENTER: Selecionar", width - 350, height - 50);
     } else if (battleState === BATTLE_MENU_FIGHT) {
-      let opt1 = battleSubIndex === 0 ? "> Ataque Forte (-5 HP, Risco)" : "  Ataque Forte (-5 HP, Risco)";
+      let opt1 = battleSubIndex === 0 ? "> Ataque Forte (-25 HP, Risco)" : "  Ataque Forte (-25 HP, Risco)";
       let opt2 = battleSubIndex === 1 ? "> Ataque Fraco (Seguro)" : "  Ataque Fraco (Seguro)";
 
       fill(battleSubIndex === 0 ? "#ffcc00" : 255);
@@ -96,6 +109,23 @@ function drawBattleScreen() {
       fill(150);
       textSize(11);
       text("W/S: Mudar | ENTER: Atacar | ESC: Voltar", width - 350, height - 50);
+    } else if (battleState === BATTLE_MENU_BAG) {
+      if (inventory.length === 0) {
+        fill(255);
+        textSize(16);
+        text("A bolsa está vazia!", width - 350, height - 110);
+      } else {
+        let item = inventory[battleBagIndex];
+        let itemName = item ? item.name : "";
+        let itemDesc = item ? `(${item.effectType}: +${item.effectValue})` : "";
+        
+        fill("#ffcc00");
+        text(`> ${itemName} ${itemDesc}`, width - 350, height - 110);
+
+        fill(150);
+        textSize(11);
+        text("W/S: Navegar | ENTER: Usar | ESC: Voltar", width - 350, height - 50);
+      }
     }
   }
 }
