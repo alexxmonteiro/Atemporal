@@ -16,6 +16,17 @@ function drawBattleScreen() {
 
   let stats = mainCharacter.getStats();
 
+  if (currentEnemy) {
+    fill(128, 0, 128);
+    noStroke();
+    rect(width / 2 - 40, height / 2 - 90, 80, 80, 10);
+
+    fill(255);
+    textSize(16);
+    textAlign(CENTER, CENTER);
+    text(currentEnemy.name, width / 2, height / 2 - 115);
+  }
+
   fill(45, 45, 65);
   stroke(200);
   strokeWeight(2);
@@ -97,7 +108,7 @@ function drawBattleScreen() {
       textSize(11);
       text("W/S: Navegar | ENTER: Selecionar", width - 350, height - 50);
     } else if (battleState === BATTLE_MENU_FIGHT) {
-      let opt1 = battleSubIndex === 0 ? "> Ataque Forte (-25 HP, Risco)" : "  Ataque Forte (-25 HP, Risco)";
+      let opt1 = battleSubIndex === 0 ? "> Ataque Forte (-15 HP, Risco)" : "  Ataque Forte (-25 HP, Risco)";
       let opt2 = battleSubIndex === 1 ? "> Ataque Fraco (Seguro)" : "  Ataque Fraco (Seguro)";
 
       fill(battleSubIndex === 0 ? "#ffcc00" : 255);

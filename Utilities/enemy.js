@@ -1,5 +1,5 @@
 class Enemy {
-  constructor(x, y, direction = 'DOWN') {
+  constructor(x, y, name, maxHp, direction) {
     this.x = x;
     this.y = y;
     this.size = 35;
@@ -8,9 +8,11 @@ class Enemy {
     this.isChasing = false;
     this.visionLength = 150;
     
-    this.maxHp = 50;
-    this.hp = 50;
-    this.name = "Inimigo Sombrio";
+    this.maxHp = maxHp;
+    this.hp = maxHp;
+    this.name = name;
+    this.defeated = false;
+    this.spared = false;
   }
 
   update(player) {

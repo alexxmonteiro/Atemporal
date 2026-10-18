@@ -27,7 +27,7 @@ function enemyTurn() {
       mainCharacter.hp = Math.max(0, mainCharacter.hp - dmg);
       battleLog = `O inimigo usou ATAQUE FORTE e acertou! -${dmg} HP`;
     } else {
-      battleLog = `O inimigo usou ATAQUE FRACO, mas errou!`;
+      battleLog = `O inimigo usou ATAQUE FORTE, mas errou!`;
     }
   } else {
     let hitChance = 0.8 + (stats.luck * 0.01);
@@ -124,20 +124,20 @@ function keyPressed() {
         let stats = mainCharacter.getStats();
         
         if (battleSubIndex === 0) {
-          mainCharacter.hp = Math.max(0, mainCharacter.hp - 25);
+          mainCharacter.hp = Math.max(0, mainCharacter.hp - 15);
           
-          let hitChance = 0.1 + (stats.luck * 0.01);
+          let hitChance = 0.2 + (stats.luck * 0.01);
           if (random() < hitChance) {
             let dmg = stats.attack * 1.8 + 10;
             currentEnemy.hp = Math.max(0, currentEnemy.hp - dmg);
-            battleLog = `Ataque Forte acertou! (-25 HP seu) Causou ${Math.round(dmg)} de dano!`;
+            battleLog = `Ataque Forte acertou! (-15 HP seu) Causou ${Math.round(dmg)} de dano!`;
           } else {
-            battleLog = `Você usou Ataque Forte (-25 HP seu), mas errou o golpe!`;
+            battleLog = `Você usou Ataque Forte (-15 HP seu), mas errou o golpe!`;
           }
         } else {
           let hitChance = 0.85 + (stats.luck * 0.01);
           if (random() < hitChance) {
-            let dmg = stats.attack * 0.3;
+            let dmg = stats.attack * 0.7;
             currentEnemy.hp = Math.max(0, currentEnemy.hp - dmg);
             battleLog = `Ataque Fraco acertou! Causou ${Math.round(dmg)} de dano.`;
           } else {

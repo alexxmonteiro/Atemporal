@@ -22,13 +22,13 @@ function setupLevel(level) {
 
     doors.push(new Door(700, 150, 40, 60));
 
-    enemies.push(new Enemy(500, 150, 'DOWN'));
+    enemies.push(new Enemy(500, 150, "Inimigo Sombrio", 50, 'DOWN'));
   } else if (level === 2) {
     obstacles.push(new Obstacle(200, 200, 300, 30));
 
     doors.push(new Door(650, 400, 40, 60));
 
-    enemies.push(new Enemy(200, 400, 'RIGHT'));
+    enemies.push(new Enemy(200, 400, "Cavaleiro Corrompido", 80, 'RIGHT'));
   }
 
   mainCharacter.isFrozen = false;
