@@ -1,3 +1,10 @@
+const DIRECTION_VECTORS = Object.freeze({
+  UP: { x: 0, y: -1 },
+  DOWN: { x: 0, y: 1 },
+  LEFT: { x: -1, y: 0 },
+  RIGHT: { x: 1, y: 0 },
+});
+
 class Enemy {
   constructor(x, y, name, maxHp, direction) {
     this.x = x;
@@ -7,7 +14,7 @@ class Enemy {
     this.speed = 1.5;
     this.isChasing = false;
     this.visionLength = 150;
-    
+
     this.maxHp = maxHp;
     this.hp = maxHp;
     this.name = name;
@@ -15,80 +22,71 @@ class Enemy {
     this.spared = false;
   }
 
+  get center() {
+    return { x: this.x + this.size / 2, y: this.y + this.size / 2 };
+  }
+
+  get bounds() {
+    return { x: this.x, y: this.y, w: this.size, h: this.size };
+  }
+
   update(player) {
     if (!this.isChasing) {
-      if (this.checkVision(player)) {
-        this.isChasing = true;
-      }
-    } else {
-      let angle = atan2(player.posY - this.y, player.posX - this.x);
-      this.x += cos(angle) * this.speed;
-      this.y += sin(angle) * this.speed;
+      this.isChasing = this.checkVision(player);
+      return;
     }
+
+    const angle = atan2(player.posY - this.y, player.posX - this.x);
+    this.x += cos(angle) * this.speed;
+    this.y += sin(angle) * this.speed;
   }
 
   checkVision(player) {
-    let pCenterX = player.posX + player.size / 2;
-    let pCenterY = player.posY + player.size / 2;
-    let halfSize = this.size / 2;
-    let centerX = this.x + halfSize;
-    let centerY = this.y + halfSize;
+    const direction = DIRECTION_VECTORS[this.direction];
+    if (!direction) return false;
 
-    if (this.direction === 'UP') {
-      return (
-        pCenterX > this.x &&
-        pCenterX < this.x + this.size &&
-        pCenterY < centerY &&
-        pCenterY > centerY - this.visionLength
-      );
-    } else if (this.direction === 'DOWN') {
-      return (
-        pCenterX > this.x &&
-        pCenterX < this.x + this.size &&
-        pCenterY > centerY &&
-        pCenterY < centerY + this.visionLength
-      );
-    } else if (this.direction === 'LEFT') {
-      return (
-        pCenterY > this.y &&
-        pCenterY < this.y + this.size &&
-        pCenterX < centerX &&
-        pCenterX > centerX - this.visionLength
-      );
-    } else if (this.direction === 'RIGHT') {
-      return (
-        pCenterY > this.y &&
-        pCenterY < this.y + this.size &&
-        pCenterX > centerX &&
-        pCenterX < centerX + this.visionLength
-      );
-    }
-    return false;
-  }
+    const playerCenter = player.center;
+    const enemyCenter = this.center;
+    const isVertical = direction.x === 0;
 
-  checkCollision(player) {
+    const lateralPosition = isVertical ? playerCenter.x : playerCenter.y;
+    const lateralStart = isVertical ? this.x : this.y;
+    const forwardDistance = isVertical
+      ? (playerCenter.y - enemyCenter.y) * direction.y
+      : (playerCenter.x - enemyCenter.x) * direction.x;
+
     return (
-      player.posX < this.x + this.size &&
-      player.posX + player.size > this.x &&
-      player.posY < this.y + this.size &&
-      player.posY + player.size > this.y
+      lateralPosition > lateralStart &&
+      lateralPosition < lateralStart + this.size &&
+      forwardDistance > 0 &&
+      forwardDistance < this.visionLength
     );
   }
 
+  checkCollision(player) {
+    return rectsOverlap(player.bounds, this.bounds);
+  }
+
   draw() {
-    fill("#800080");
+    fill(COLORS.enemy);
     noStroke();
     rect(this.x, this.y, this.size, this.size);
+    this.drawVisionLine();
+  }
 
+  drawVisionLine() {
+    const direction = DIRECTION_VECTORS[this.direction];
+    if (!direction) return;
+
+    const center = this.center;
     stroke(255, 0, 0, 100);
     strokeWeight(2);
-    let cx = this.x + this.size / 2;
-    let cy = this.y + this.size / 2;
-
-    if (this.direction === 'UP') line(cx, cy, cx, cy - this.visionLength);
-    if (this.direction === 'DOWN') line(cx, cy, cx, cy + this.visionLength);
-    if (this.direction === 'LEFT') line(cx, cy, cx - this.visionLength, cy);
-    if (this.direction === 'RIGHT') line(cx, cy, cx + this.visionLength, cy);
+    line(
+      center.x,
+      center.y,
+      center.x + direction.x * this.visionLength,
+      center.y + direction.y * this.visionLength
+    );
     noStroke();
   }
 }

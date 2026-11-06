@@ -7,7 +7,7 @@ class Obstacle {
   }
 
   draw() {
-    fill("#333333");
+    fill(COLORS.obstacle);
     rect(this.x, this.y, this.w, this.h);
   }
 }

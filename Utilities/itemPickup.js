@@ -1,34 +1,15 @@
-class ItemPickup {
+class ItemPickup extends Pickup {
   constructor(x, y, name, effectType, effectValue) {
-    this.x = x;
-    this.y = y;
-    this.size = 25;
-    this.name = name;
+    super(x, y, name, COLORS.itemPickup);
     this.effectType = effectType;
     this.effectValue = effectValue;
-    this.collected = false;
   }
 
-  checkCollision(player) {
-    return (
-      player.posX < this.x + this.size &&
-      player.posX + player.size > this.x &&
-      player.posY < this.y + this.size &&
-      player.posY + player.size > this.y
-    );
-  }
-
-  draw() {
-    if (!this.collected) {
-      fill("#ff0000");
-      rect(this.x, this.y, this.size, this.size);
-    }
-  }
-
-  drawPrompt() {
-    fill(0);
-    textSize(14);
-    textAlign(CENTER, BOTTOM);
-    text("Pressione E para interagir", this.x + this.size / 2, this.y - 8);
+  toItem() {
+    return {
+      name: this.name,
+      effectType: this.effectType,
+      effectValue: this.effectValue,
+    };
   }
 }

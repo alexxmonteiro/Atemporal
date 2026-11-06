@@ -8,28 +8,23 @@ class Door {
   }
 
   checkInteraction(player) {
-    let playerCenterX = player.posX + player.size / 2;
-    let playerCenterY = player.posY + player.size / 2;
-    
-    let doorCenterX = this.x + this.w / 2;
-    let doorCenterY = this.y + this.h / 2;
+    const playerCenter = player.center;
+    const doorCenterX = this.x + this.w / 2;
+    const doorCenterY = this.y + this.h / 2;
 
-    let distance = dist(playerCenterX, playerCenterY, doorCenterX, doorCenterY);
-    let maxDist = Math.max(this.w, this.h) / 2 + this.interactionRadius + player.size / 2;
+    const distance = dist(playerCenter.x, playerCenter.y, doorCenterX, doorCenterY);
+    const maxDistance = Math.max(this.w, this.h) / 2 + this.interactionRadius + player.size / 2;
 
-    return distance <= maxDist;
+    return distance <= maxDistance;
   }
 
   draw() {
-    fill("#f39200");
+    fill(COLORS.door);
     noStroke();
     rect(this.x, this.y, this.w, this.h);
   }
 
   drawPrompt() {
-    fill(0);
-    textSize(14);
-    textAlign(CENTER, BOTTOM);
-    text("Pressione E para interagir", this.x + this.w / 2, this.y - 8);
+    drawInteractionPrompt(this.x + this.w / 2, this.y);
   }
 }

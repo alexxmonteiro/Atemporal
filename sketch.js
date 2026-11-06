@@ -1,46 +1,35 @@
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  mainCharacter = new MainCharacter(100, 100);
+  mainCharacter = new MainCharacter(PLAYER_START.x, PLAYER_START.y);
   setupLevel(1);
 }
 
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
 function setupLevel(level) {
-  obstacles = [];
-  companionPickups = [];
-  itemPickups = [];
-  doors = [];
-  enemies = [];
+  const data = LEVELS[level - 1] || {};
 
-  if (level === 1) {
-    obstacles.push(new Obstacle(300, 200, 150, 40));
-    obstacles.push(new Obstacle(500, 350, 50, 200));
-
-    companionPickups.push(new CompanionPickup(250, 150, "Miséria", 10, 0, -5));
-    companionPickups.push(new CompanionPickup(450, 400, "Faísca", -2, 60, 2));
-
-    itemPickups.push(new ItemPickup(200, 300, "Poção de Vida", "heal", 50));
-
-    doors.push(new Door(700, 150, 40, 60));
-
-    enemies.push(new Enemy(500, 150, "Inimigo Sombrio", 50, 'DOWN'));
-  } else if (level === 2) {
-    obstacles.push(new Obstacle(200, 200, 300, 30));
-
-    doors.push(new Door(650, 400, 40, 60));
-
-    enemies.push(new Enemy(200, 400, "Cavaleiro Corrompido", 80, 'RIGHT'));
-  }
+  obstacles = (data.obstacles || []).map(o => new Obstacle(o.x, o.y, o.w, o.h));
+  companionPickups = (data.companions || []).map(
+    c => new CompanionPickup(c.x, c.y, c.name, c.attackBonus, c.hpBonus, c.luckBonus)
+  );
+  itemPickups = (data.items || []).map(
+    i => new ItemPickup(i.x, i.y, i.name, i.effectType, i.effectValue)
+  );
+  doors = (data.doors || []).map(d => new Door(d.x, d.y, d.w, d.h));
+  enemies = (data.enemies || []).map(
+    e => new Enemy(e.x, e.y, e.name, e.maxHp, e.direction)
+  );
 
   mainCharacter.isFrozen = false;
-  gameState = STATE_PLAYING;
+  gameState = GameState.PLAYING;
 }
 
 function resetGameToStart() {
   currentLevel = 1;
-  mainCharacter.posX = 100;
-  mainCharacter.posY = 100;
-  mainCharacter.vx = 0;
-  mainCharacter.vy = 0;
+  mainCharacter.resetPosition(PLAYER_START.x, PLAYER_START.y);
   mainCharacter.hp = mainCharacter.maxHp;
   inventory = [];
   companions = [];
@@ -49,106 +38,85 @@ function resetGameToStart() {
 
 function nextLevel() {
   currentLevel++;
-  if (currentLevel > 2) {
+  if (currentLevel > LEVELS.length) {
     currentLevel = 1;
   }
 
-  mainCharacter.posX = 100;
-  mainCharacter.posY = 100;
-  mainCharacter.vx = 0;
-  mainCharacter.vy = 0;
-
+  mainCharacter.resetPosition(PLAYER_START.x, PLAYER_START.y);
   setupLevel(currentLevel);
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
+function updateEnemy(enemy) {
+  enemy.update(mainCharacter);
+
+  if (enemy.checkVision(mainCharacter)) {
+    mainCharacter.isFrozen = true;
+  }
+
+  if (enemy.checkCollision(mainCharacter)) {
+    mainCharacter.isFrozen = true;
+    enemy.defeated = true;
+    startBattle(enemy);
+  }
+}
+
+function updateAndDrawEnemies() {
+  for (const enemy of enemies) {
+    if (gameState === GameState.PLAYING) updateEnemy(enemy);
+    enemy.draw();
+  }
+}
+
+function drawDoors() {
+  for (const door of doors) {
+    door.draw();
+    if (gameState === GameState.PLAYING && door.checkInteraction(mainCharacter)) {
+      door.drawPrompt();
+    }
+  }
+}
+
+function drawPickups(pickups) {
+  for (const pickup of pickups) {
+    if (pickup.collected) continue;
+    pickup.draw();
+    if (gameState === GameState.PLAYING && pickup.checkCollision(mainCharacter)) {
+      pickup.drawPrompt();
+    }
+  }
+}
+
+function drawStateOverlay() {
+  if (gameState === GameState.PLAYING) return;
+
+  if (gameState === GameState.BATTLE_TRANSITION) {
+    fill(0);
+    rect(0, 0, width, height);
+  } else if (gameState === GameState.BATTLE) {
+    drawBattleScreen();
+  } else if (gameState === GameState.GAME_OVER) {
+    drawGameOverScreen();
+  } else {
+    drawMenuOverlay();
+  }
 }
 
 function draw() {
   background("#ffffff");
+  drawHud();
 
-  let stats = mainCharacter.getStats();
-  let barWidth = 200;
-  let barHeight = 20;
-  let barX = 20;
-  let barY = 20;
-
-  fill(100, 100, 100);
-  noStroke();
-  rect(barX, barY, barWidth, barHeight, 5);
-
-  let hpPercent = Math.max(0, mainCharacter.hp) / stats.maxHp;
-  fill(0, 255, 0);
-  rect(barX, barY, barWidth * hpPercent, barHeight, 5);
-
-  fill(0);
-  textSize(12);
-  textAlign(LEFT, CENTER);
-  text(`HP: ${Math.max(0, mainCharacter.hp)} / ${stats.maxHp}`, barX + 10, barY + barHeight / 2);
-
-  for (let obs of obstacles) {
-    obs.draw();
+  for (const obstacle of obstacles) {
+    obstacle.draw();
   }
 
-  if (gameState === STATE_PLAYING) {
+  if (gameState === GameState.PLAYING) {
     mainCharacter.move(obstacles);
   }
 
-  for (let enemy of enemies) {
-    if (gameState === STATE_PLAYING) {
-      enemy.update(mainCharacter);
-      
-      if (enemy.checkVision(mainCharacter)) {
-        mainCharacter.isFrozen = true;
-      }
-      
-      if (enemy.checkCollision(mainCharacter)) {
-        mainCharacter.isFrozen = true;
-        enemy.defeated = true;
-        startBattle(enemy);
-      }
-    }
-    enemy.draw();
-  }
-
-  for (let door of doors) {
-    door.draw();
-    if (gameState === STATE_PLAYING && door.checkInteraction(mainCharacter)) {
-      door.drawPrompt();
-    }
-  }
-
-  for (let pickup of companionPickups) {
-    if (!pickup.collected) {
-      pickup.draw();
-      if (gameState === STATE_PLAYING && pickup.checkCollision(mainCharacter)) {
-        pickup.drawPrompt();
-      }
-    }
-  }
-
-  for (let pickup of itemPickups) {
-    if (!pickup.collected) {
-      pickup.draw();
-      if (gameState === STATE_PLAYING && pickup.checkCollision(mainCharacter)) {
-        pickup.drawPrompt();
-      }
-    }
-  }
-
+  updateAndDrawEnemies();
+  drawDoors();
+  drawPickups(companionPickups);
+  drawPickups(itemPickups);
   mainCharacter.draw();
-
-  if (gameState !== STATE_PLAYING) {
-    if (gameState === STATE_BATTLE_TRANSITION) {
-      fill(0);
-      rect(0, 0, width, height);
-    } else if (gameState === STATE_BATTLE) {
-      drawBattleScreen();
-    } else if (gameState === STATE_GAME_OVER) {
-      drawGameOverScreen();
-    } else {
-      drawMenuOverlay();
-    }
-  }
+  drawStateOverlay();
 }

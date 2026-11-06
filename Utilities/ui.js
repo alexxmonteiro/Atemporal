@@ -1,3 +1,43 @@
+const HUD_BAR = Object.freeze({ x: 20, y: 20, w: 200, h: 20 });
+
+const BATTLE_PANEL_COLORS = Object.freeze({
+  info: [45, 45, 65],
+  log: [25, 25, 35],
+  menu: [35, 35, 50],
+});
+
+function drawBar(x, y, w, h, percent, color) {
+  fill(100);
+  rect(x, y, w, h, 5);
+  fill(...color);
+  rect(x, y, w * percent, h, 5);
+}
+
+function drawBattlePanel(x, y, w, h, color) {
+  fill(...color);
+  stroke(200);
+  strokeWeight(2);
+  rect(x, y, w, h, 10);
+  noStroke();
+}
+
+function menuOption(label, idleLabel = label) {
+  return { selected: `> ${label}`, idle: `  ${idleLabel}` };
+}
+
+function drawHud() {
+  const stats = mainCharacter.getStats();
+  const { x, y, w, h } = HUD_BAR;
+
+  noStroke();
+  drawBar(x, y, w, h, mainCharacter.displayHp / stats.maxHp, [0, 255, 0]);
+
+  fill(0);
+  textSize(12);
+  textAlign(LEFT, CENTER);
+  text(`HP: ${mainCharacter.displayHp} / ${stats.maxHp}`, x + 10, y + h / 2);
+}
+
 function drawGameOverScreen() {
   background(0);
 
@@ -13,45 +53,45 @@ function drawGameOverScreen() {
 
 function drawBattleScreen() {
   background(20, 20, 35);
+  drawBattleEnemySprite();
+  drawBattleEnemyPanel();
+  drawBattlePlayerPanel();
+  drawBattleLog();
+  drawBattleMenuPanel();
+}
 
-  let stats = mainCharacter.getStats();
-
-  if (currentEnemy) {
-    fill(128, 0, 128);
-    noStroke();
-    rect(width / 2 - 40, height / 2 - 90, 80, 80, 10);
-
-    fill(255);
-    textSize(16);
-    textAlign(CENTER, CENTER);
-    text(currentEnemy.name, width / 2, height / 2 - 115);
-  }
-
-  fill(45, 45, 65);
-  stroke(200);
-  strokeWeight(2);
-  rect(width - 400, 40, 350, 110, 10);
+function drawBattleEnemySprite() {
+  fill(COLORS.enemy);
   noStroke();
+  rect(width / 2 - 40, height / 2 - 90, 80, 80, 10);
+
+  fill(255);
+  textSize(16);
+  textAlign(CENTER, CENTER);
+  text(battle.enemy.name, width / 2, height / 2 - 115);
+}
+
+function drawBattleEnemyPanel() {
+  const enemy = battle.enemy;
+  const hp = Math.max(0, enemy.hp);
+
+  drawBattlePanel(width - 400, 40, 350, 110, BATTLE_PANEL_COLORS.info);
 
   fill(255);
   textSize(20);
   textAlign(LEFT, TOP);
-  text(currentEnemy ? currentEnemy.name : "Inimigo", width - 380, 55);
+  text(enemy.name, width - 380, 55);
 
   textSize(14);
-  text(`HP: ${currentEnemy ? Math.max(0, currentEnemy.hp) : 0} / ${currentEnemy ? currentEnemy.maxHp : 50}`, width - 380, 85);
+  text(`HP: ${hp} / ${enemy.maxHp}`, width - 380, 85);
 
-  let enemyHpPercent = currentEnemy ? Math.max(0, currentEnemy.hp) / currentEnemy.maxHp : 0;
-  fill(100);
-  rect(width - 380, 110, 300, 15, 5);
-  fill(0, 220, 100);
-  rect(width - 380, 110, 300 * enemyHpPercent, 15, 5);
+  drawBar(width - 380, 110, 300, 15, hp / enemy.maxHp, [0, 220, 100]);
+}
 
-  fill(45, 45, 65);
-  stroke(200);
-  strokeWeight(2);
-  rect(50, height - 260, 350, 110, 10);
-  noStroke();
+function drawBattlePlayerPanel() {
+  const stats = mainCharacter.getStats();
+
+  drawBattlePanel(50, height - 260, 350, 110, BATTLE_PANEL_COLORS.info);
 
   fill(255);
   textSize(20);
@@ -59,86 +99,90 @@ function drawBattleScreen() {
   text("Jogador", 70, height - 245);
 
   textSize(14);
-  text(`HP: ${Math.max(0, mainCharacter.hp)} / ${stats.maxHp}  |  SORTE: ${stats.luck}`, 70, height - 215);
+  text(`HP: ${mainCharacter.displayHp} / ${stats.maxHp}  |  SORTE: ${stats.luck}`, 70, height - 215);
 
-  let playerHpPercent = Math.max(0, mainCharacter.hp) / stats.maxHp;
-  fill(100);
-  rect(70, height - 190, 300, 15, 5);
-  fill(0, 150, 255);
-  rect(70, height - 190, 300 * playerHpPercent, 15, 5);
+  drawBar(70, height - 190, 300, 15, mainCharacter.displayHp / stats.maxHp, [0, 150, 255]);
+}
 
-  fill(25, 25, 35);
-  stroke(200);
-  strokeWeight(2);
-  rect(50, height - 130, width - 450, 90, 10);
-  noStroke();
+function drawBattleLog() {
+  drawBattlePanel(50, height - 130, width - 450, 90, BATTLE_PANEL_COLORS.log);
 
   fill(255);
   textSize(16);
   textAlign(LEFT, TOP);
-  text(battleLog, 70, height - 110);
+  text(battle.log, 70, height - 110);
+}
 
-  fill(35, 35, 50);
-  stroke(200);
-  strokeWeight(2);
-  rect(width - 380, height - 130, 330, 90, 10);
-  noStroke();
+function drawBattleMenuPanel() {
+  const centerX = width - 380 + 165;
+  const centerY = height - 130 + 45;
 
+  drawBattlePanel(width - 380, height - 130, 330, 90, BATTLE_PANEL_COLORS.menu);
   textSize(18);
-  if (battleFinished) {
+
+  if (battle.finished) {
     fill(255, 200, 0);
     textAlign(CENTER, CENTER);
-    text("Pressione ENTER para continuar", width - 380 + 165, height - 130 + 45);
-  } else if (!isPlayerTurn) {
+    text("Pressione ENTER para continuar", centerX, centerY);
+  } else if (!battle.isPlayerTurn) {
     fill(200, 200, 200);
     textAlign(CENTER, CENTER);
-    text("Turno do Inimigo...", width - 380 + 165, height - 130 + 45);
+    text("Turno do Inimigo...", centerX, centerY);
   } else {
-    if (battleState === BATTLE_MENU_MAIN) {
-      let opt1 = battleSelectedIndex === 0 ? "> Atacar" : "  Atacar";
-      let opt2 = battleSelectedIndex === 1 ? "> Bolsa" : "  Bolsa";
-
-      fill(battleSelectedIndex === 0 ? "#ffcc00" : 255);
-      text(opt1, width - 350, height - 110);
-
-      fill(battleSelectedIndex === 1 ? "#ffcc00" : 255);
-      text(opt2, width - 350, height - 80);
-
-      fill(150);
-      textSize(11);
-      text("W/S: Navegar | ENTER: Selecionar", width - 350, height - 50);
-    } else if (battleState === BATTLE_MENU_FIGHT) {
-      let opt1 = battleSubIndex === 0 ? "> Ataque Forte (-15 HP, Risco)" : "  Ataque Forte (-25 HP, Risco)";
-      let opt2 = battleSubIndex === 1 ? "> Ataque Fraco (Seguro)" : "  Ataque Fraco (Seguro)";
-
-      fill(battleSubIndex === 0 ? "#ffcc00" : 255);
-      text(opt1, width - 350, height - 110);
-
-      fill(battleSubIndex === 1 ? "#ffcc00" : 255);
-      text(opt2, width - 350, height - 80);
-
-      fill(150);
-      textSize(11);
-      text("W/S: Mudar | ENTER: Atacar | ESC: Voltar", width - 350, height - 50);
-    } else if (battleState === BATTLE_MENU_BAG) {
-      if (inventory.length === 0) {
-        fill(255);
-        textSize(16);
-        text("A bolsa está vazia!", width - 350, height - 110);
-      } else {
-        let item = inventory[battleBagIndex];
-        let itemName = item ? item.name : "";
-        let itemDesc = item ? `(${item.effectType}: +${item.effectValue})` : "";
-        
-        fill("#ffcc00");
-        text(`> ${itemName} ${itemDesc}`, width - 350, height - 110);
-
-        fill(150);
-        textSize(11);
-        text("W/S: Navegar | ENTER: Usar | ESC: Voltar", width - 350, height - 50);
-      }
-    }
+    textAlign(LEFT, TOP);
+    drawBattleMenuOptions();
   }
+}
+
+function drawBattleOptionList(options, selectedIndex, hint) {
+  options.forEach((option, i) => {
+    const isSelected = i === selectedIndex;
+    fill(isSelected ? COLORS.highlight : 255);
+    text(isSelected ? option.selected : option.idle, width - 350, height - 110 + i * 30);
+  });
+
+  fill(150);
+  textSize(11);
+  text(hint, width - 350, height - 50);
+}
+
+function drawBattleMenuOptions() {
+  if (battle.state === BattleMenu.MAIN) {
+    drawBattleOptionList(
+      [menuOption("Atacar"), menuOption("Bolsa")],
+      battle.selectedIndex,
+      "W/S: Navegar | ENTER: Selecionar"
+    );
+  } else if (battle.state === BattleMenu.FIGHT) {
+    drawBattleOptionList(
+      [
+        menuOption("Ataque Forte (-15 HP, Risco)"),
+        menuOption("Ataque Fraco (Seguro)"),
+      ],
+      battle.subIndex,
+      "W/S: Mudar | ENTER: Atacar | ESC: Voltar"
+    );
+  } else if (battle.state === BattleMenu.BAG) {
+    drawBattleBag();
+  }
+}
+
+function drawBattleBag() {
+  if (inventory.length === 0) {
+    fill(255);
+    textSize(16);
+    text("A bolsa está vazia!", width - 350, height - 110);
+    return;
+  }
+
+  const item = inventory[battle.bagIndex];
+
+  fill(COLORS.highlight);
+  text(`> ${item.name} (${item.effectType}: +${item.effectValue})`, width - 350, height - 110);
+
+  fill(150);
+  textSize(11);
+  text("W/S: Navegar | ENTER: Usar | ESC: Voltar", width - 350, height - 50);
 }
 
 function drawMenuOverlay() {
@@ -153,72 +197,89 @@ function drawMenuOverlay() {
 
   textAlign(CENTER, CENTER);
 
-  if (gameState === STATE_MENU_MAIN) {
-    fill(255);
-    textSize(22);
-    text("MENU DE OPÇÕES", width / 2, height / 2 - 150);
-
-    let stats = mainCharacter.getStats();
-    textSize(13);
-    fill(200);
-    text(`HP: ${mainCharacter.hp}/${stats.maxHp} | ATK: ${stats.attack} | SORTE: ${stats.luck}`, width / 2, height / 2 - 110);
-
-    for (let i = 0; i < menuOptions.length; i++) {
-      let y = height / 2 - 30 + i * 50;
-      if (i === selectedIndex) {
-        fill("#ffcc00");
-        textSize(20);
-        text("> " + menuOptions[i] + " <", width / 2, y);
-      } else {
-        fill(200);
-        textSize(18);
-        text(menuOptions[i], width / 2, y);
-      }
-    }
-
-    fill(150);
-    textSize(12);
-    text("W/S: Navegar | ENTER: Confirmar", width / 2, height / 2 + 160);
-  } 
-  else if (gameState === STATE_INVENTORY || gameState === STATE_COMPANIONS) {
-    let title = gameState === STATE_INVENTORY ? "INVENTÁRIO (USO ÚNICO)" : "COMPANHEIROS";
-    let list = gameState === STATE_INVENTORY ? inventory : companions;
-
-    fill(255);
-    textSize(20);
-    text(title, width / 2, height / 2 - 150);
-
-    for (let i = 0; i < list.length; i++) {
-      let y = height / 2 - 70 + i * 45;
-      let details = "";
-      
-      if (gameState === STATE_INVENTORY) {
-        details = ` (${list[i].effectType}: +${list[i].effectValue})`;
-      } else {
-        let status = list[i].equipped ? " [EQUIPADO]" : "";
-        details = ` (ATK: ${list[i].attackBonus >= 0 ? '+' + list[i].attackBonus : list[i].attackBonus}, HP: +${list[i].hpBonus}, SORTE: ${list[i].luckBonus >= 0 ? '+' + list[i].luckBonus : list[i].luckBonus})${status}`;
-      }
-      
-      if (i === subSelectedIndex) {
-        fill("#ffcc00");
-        textSize(15);
-        text("> " + list[i].name + details + " <", width / 2, y);
-      } else {
-        fill(200);
-        textSize(14);
-        text(list[i].name + details, width / 2, y);
-      }
-    }
-
-    if (list.length === 0) {
-      fill(150);
-      textSize(16);
-      text("Vazio", width / 2, height / 2);
-    }
-
-    fill(150);
-    textSize(12);
-    let promptText = gameState === STATE_INVENTORY ? "ENTER: Usar Item | ESC: Voltar" : "ENTER: Equipar/Desequipar | ESC: Voltar";
-    text(promptText, width / 2, height / 2 + 160);
+  if (gameState === GameState.MENU_MAIN) {
+    drawMainMenu();
+  } else if (gameState === GameState.INVENTORY || gameState === GameState.COMPANIONS) {
+    drawListMenu();
   }
+}
+
+function drawMainMenu() {
+  const stats = mainCharacter.getStats();
+
+  fill(255);
+  textSize(22);
+  text("MENU DE OPÇÕES", width / 2, height / 2 - 150);
+
+  textSize(13);
+  fill(200);
+  text(
+    `HP: ${mainCharacter.hp}/${stats.maxHp} | ATK: ${stats.attack} | SORTE: ${stats.luck}`,
+    width / 2,
+    height / 2 - 110
+  );
+
+  MENU_OPTIONS.forEach((option, i) => {
+    const y = height / 2 - 30 + i * 50;
+    if (i === menu.selectedIndex) {
+      fill(COLORS.highlight);
+      textSize(20);
+      text(`> ${option} <`, width / 2, y);
+    } else {
+      fill(200);
+      textSize(18);
+      text(option, width / 2, y);
+    }
+  });
+
+  fill(150);
+  textSize(12);
+  text("W/S: Navegar | ENTER: Confirmar", width / 2, height / 2 + 160);
+}
+
+function formatListEntryDetails(entry, isInventory) {
+  if (isInventory) {
+    return ` (${entry.effectType}: +${entry.effectValue})`;
+  }
+
+  const status = entry.equipped ? " [EQUIPADO]" : "";
+  return ` (ATK: ${formatSigned(entry.attackBonus)}, HP: +${entry.hpBonus}, SORTE: ${formatSigned(entry.luckBonus)})${status}`;
+}
+
+function drawListMenu() {
+  const isInventory = gameState === GameState.INVENTORY;
+  const title = isInventory ? "INVENTÁRIO (USO ÚNICO)" : "COMPANHEIROS";
+  const list = isInventory ? inventory : companions;
+  const hint = isInventory
+    ? "ENTER: Usar Item | ESC: Voltar"
+    : "ENTER: Equipar/Desequipar | ESC: Voltar";
+
+  fill(255);
+  textSize(20);
+  text(title, width / 2, height / 2 - 150);
+
+  list.forEach((entry, i) => {
+    const y = height / 2 - 70 + i * 45;
+    const label = entry.name + formatListEntryDetails(entry, isInventory);
+
+    if (i === menu.subIndex) {
+      fill(COLORS.highlight);
+      textSize(15);
+      text(`> ${label} <`, width / 2, y);
+    } else {
+      fill(200);
+      textSize(14);
+      text(label, width / 2, y);
+    }
+  });
+
+  if (list.length === 0) {
+    fill(150);
+    textSize(16);
+    text("Vazio", width / 2, height / 2);
+  }
+
+  fill(150);
+  textSize(12);
+  text(hint, width / 2, height / 2 + 160);
 }
