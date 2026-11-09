@@ -1,6 +1,7 @@
 function setup() {
   createCanvas(windowWidth, windowHeight);
   mainCharacter = new MainCharacter(PLAYER_START.x, PLAYER_START.y);
+  gameCamera = new Camera(CAMERA_SMOOTHING);
   setupLevel(1);
 }
 
@@ -24,6 +25,7 @@ function setupLevel(level) {
   );
 
   mainCharacter.isFrozen = false;
+  gameCamera.snapTo(mainCharacter);
   gameState = GameState.PLAYING;
 }
 
@@ -103,20 +105,25 @@ function drawStateOverlay() {
 
 function draw() {
   background("#ffffff");
-  drawHud();
-
-  for (const obstacle of obstacles) {
-    obstacle.draw();
-  }
 
   if (gameState === GameState.PLAYING) {
     mainCharacter.move(obstacles);
   }
 
+  gameCamera.follow(mainCharacter);
+
+  push();
+  gameCamera.apply();
+  for (const obstacle of obstacles) {
+    obstacle.draw();
+  }
   updateAndDrawEnemies();
   drawDoors();
   drawPickups(companionPickups);
   drawPickups(itemPickups);
   mainCharacter.draw();
+  pop();
+
+  drawHud();
   drawStateOverlay();
 }
