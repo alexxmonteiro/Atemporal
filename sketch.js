@@ -19,10 +19,12 @@ function setupLevel(level) {
   itemPickups = (data.items || []).map(
     i => new ItemPickup(i.x, i.y, i.name, i.effectType, i.effectValue)
   );
-  doors = (data.doors || []).map(d => new Door(d.x, d.y, d.w, d.h));
+  doors = (data.doors || []).map(d => new Door(d.x, d.y, d.w, d.h, d.type, d.direction));
   enemies = (data.enemies || []).map(
     e => new Enemy(e.x, e.y, e.name, e.maxHp, e.direction)
   );
+
+  collisionBodies = [...obstacles, ...doors.filter(door => !door.isTrigger)];
 
   mainCharacter.isFrozen = false;
   gameCamera.snapTo(mainCharacter);
@@ -38,13 +40,24 @@ function resetGameToStart() {
   setupLevel(currentLevel);
 }
 
-function nextLevel() {
-  currentLevel++;
-  if (currentLevel > LEVELS.length) {
-    currentLevel = 1;
-  }
+function findReturnSpawn(levelIndex) {
+  const exit = (LEVELS[levelIndex].doors || []).find(
+    door => door.returnSpawn && door.direction !== DoorDirection.PREVIOUS
+  );
+  return exit ? exit.returnSpawn : PLAYER_START;
+}
 
-  mainCharacter.resetPosition(PLAYER_START.x, PLAYER_START.y);
+function changeLevel(direction) {
+  const isGoingBack = direction === DoorDirection.PREVIOUS;
+  let targetLevel = isGoingBack ? currentLevel - 1 : currentLevel + 1;
+
+  if (targetLevel < 1) return;
+  if (targetLevel > LEVELS.length) targetLevel = 1;
+
+  const spawn = isGoingBack ? findReturnSpawn(targetLevel - 1) : PLAYER_START;
+
+  currentLevel = targetLevel;
+  mainCharacter.resetPosition(spawn.x, spawn.y);
   setupLevel(currentLevel);
 }
 
@@ -67,6 +80,11 @@ function updateAndDrawEnemies() {
     if (gameState === GameState.PLAYING) updateEnemy(enemy);
     enemy.draw();
   }
+}
+
+function checkTriggerDoors() {
+  const door = doors.find(d => d.checkTrigger(mainCharacter));
+  if (door) changeLevel(door.direction);
 }
 
 function drawDoors() {
@@ -107,7 +125,8 @@ function draw() {
   background("#ffffff");
 
   if (gameState === GameState.PLAYING) {
-    mainCharacter.move(obstacles);
+    mainCharacter.move(collisionBodies);
+    checkTriggerDoors();
   }
 
   gameCamera.follow(mainCharacter);

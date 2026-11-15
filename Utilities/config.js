@@ -14,6 +14,16 @@ const BattleMenu = Object.freeze({
   BAG: "BATTLE_BAG",
 });
 
+const DoorType = Object.freeze({
+  INTERACT: "INTERACT",
+  TRIGGER: "TRIGGER",
+});
+
+const DoorDirection = Object.freeze({
+  NEXT: "NEXT",
+  PREVIOUS: "PREVIOUS",
+});
+
 const COLORS = Object.freeze({
   player: "#ff0000",
   enemy: "#800080",
@@ -63,4 +73,5 @@ let obstacles = [];
 let companionPickups = [];
 let itemPickups = [];
 let doors = [];
+let collisionBodies = [];
 let enemies = [];

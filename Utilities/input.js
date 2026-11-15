@@ -38,8 +38,9 @@ function findCollectable(pickups) {
 }
 
 function tryInteract() {
-  if (doors.some(door => door.checkInteraction(mainCharacter))) {
-    nextLevel();
+  const door = doors.find(d => d.checkInteraction(mainCharacter));
+  if (door) {
+    changeLevel(door.direction);
     return;
   }
 

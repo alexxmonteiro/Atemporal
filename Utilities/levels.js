@@ -1,8 +1,6 @@
-const LEVELS = [
+const RAW_LEVELS = [
   {
     obstacles: [
-      { x: 33, y: -177, w: 177, h: 21 },
-      { x: -60, y: -156, w: 360, h: 9 },
       { x: -60, y: -147, w: 123, h: 21 },
       { x: 180, y: -147, w: 120, h: 21 },
       { x: -60, y: -126, w: 30, h: 297 },
@@ -12,7 +10,7 @@ const LEVELS = [
       { x: 90, y: -6, w: 60, h: 60 },
     ],
     doors: [
-      { x: 63, y: -147, w: 117, h: 21 },
+      { x: 63, y: -147, w: 117, h: 21, returnSpawn: { x: 100, y: -100 }, type: DoorType.TRIGGER },
     ],
   },
   {
@@ -45,8 +43,6 @@ const LEVELS = [
       { x: -561, y: 165, w: 180, h: 30 },
       { x: 33, y: 165, w: 45, h: 21 },
       { x: 162, y: 165, w: 45, h: 21 },
-      { x: 33, y: 186, w: 174, h: 9 },
-      { x: 48, y: 195, w: 144, h: 21 },
     ],
     companions: [
       { x: 768, y: -522, name: "Miséria", attackBonus: 10, hpBonus: 0, luckBonus: -5 },
@@ -55,7 +51,8 @@ const LEVELS = [
       { x: 338, y: -898, name: "Poção de Vida", effectType: "heal", effectValue: 50 },
     ],
     doors: [
-      { x: -315, y: -1113, w: 24, h: 30 },
+      { x: -315, y: -1113, w: 24, h: 30, type: DoorType.INTERACT, returnSpawn: { x: -375, y: -1113 } },
+      { x: 78, y: 165, w: 84, h: 21, type: DoorType.TRIGGER, direction: DoorDirection.PREVIOUS },
     ],
     enemies: [
       { x: -50, y: -1484, name: "Inimigo Sombrio", maxHp: 50, direction: 'DOWN' },
@@ -66,9 +63,7 @@ const LEVELS = [
   },
   {
     obstacles: [
-      { x: 561, y: -939, w: 180, h: 18 },
       { x: -141, y: -921, w: 408, h: 30 },
-      { x: 321, y: -921, w: 420, h: 12 },
       { x: 321, y: -909, w: 270, h: 18 },
       { x: 711, y: -909, w: 30, h: 252 },
       { x: -141, y: -891, w: 30, h: 114 },
@@ -104,7 +99,7 @@ const LEVELS = [
       { x: -78, y: -838, name: "Poção de Vida", effectType: "heal", effectValue: 50 },
     ],
     doors: [
-      { x: 591, y: -909, w: 120, h: 18 },
+      { x: 591, y: -909, w: 120, h: 18, type: DoorType.TRIGGER, returnSpawn: { x: 630, y: -860 } },
     ],
     enemies: [
       { x: 382, y: -876, name: "Inimigo Sombrio", maxHp: 50, direction: 'DOWN' },
@@ -128,12 +123,53 @@ const LEVELS = [
       { x: 237, y: -69, w: 30, h: 243 },
       { x: -30, y: 174, w: 87, h: 24 },
       { x: 177, y: 174, w: 90, h: 24 },
-      { x: -30, y: 198, w: 297, h: 6 },
-      { x: 27, y: 204, w: 180, h: 24 },
       { x: 69, y: -408, w: 99, h: 54 },
+    ],
+    doors: [
+      { x: 57, y: 174, w: 120, h: 24, type: DoorType.TRIGGER, direction: DoorDirection.PREVIOUS },
     ],
     enemies: [
       { x: 106, y: -822, name: "Chefão", maxHp: 120, direction: 'DOWN' },
     ],
   },
 ];
+
+const MAP_SCALE = 2;
+
+function scaleCoordinate(value, origin) {
+  return Math.round(origin + (value - origin) * MAP_SCALE);
+}
+
+function scalePosition(entry) {
+  return {
+    ...entry,
+    x: scaleCoordinate(entry.x, PLAYER_START.x),
+    y: scaleCoordinate(entry.y, PLAYER_START.y),
+  };
+}
+
+function scaleRect(entry) {
+  return {
+    ...scalePosition(entry),
+    w: Math.round(entry.w * MAP_SCALE),
+    h: Math.round(entry.h * MAP_SCALE),
+  };
+}
+
+function scaleDoor(entry) {
+  const door = scaleRect(entry);
+  if (entry.returnSpawn) door.returnSpawn = scalePosition(entry.returnSpawn);
+  return door;
+}
+
+function scaleLevel(level) {
+  return {
+    obstacles: (level.obstacles || []).map(scaleRect),
+    doors: (level.doors || []).map(scaleDoor),
+    companions: (level.companions || []).map(scalePosition),
+    items: (level.items || []).map(scalePosition),
+    enemies: (level.enemies || []).map(scalePosition),
+  };
+}
+
+const LEVELS = RAW_LEVELS.map(scaleLevel);
