@@ -38,6 +38,34 @@ function drawHud() {
   text(`HP: ${mainCharacter.displayHp} / ${stats.maxHp}`, x + 10, y + h / 2);
 }
 
+function drawNotice() {
+  if (
+    gameState === GameState.BATTLE ||
+    gameState === GameState.GAME_OVER ||
+    gameState === GameState.BATTLE_TRANSITION
+  ) {
+    return;
+  }
+
+  if (millis() >= notice.expiresAt) return;
+
+  push();
+  textSize(16);
+  textAlign(CENTER, CENTER);
+
+  const boxWidth = textWidth(notice.text) + 40;
+
+  fill(0, 0, 0, 200);
+  stroke(COLORS.highlight);
+  strokeWeight(2);
+  rect(width / 2 - boxWidth / 2, height - 90, boxWidth, 44, 8);
+
+  noStroke();
+  fill(255);
+  text(notice.text, width / 2, height - 68);
+  pop();
+}
+
 function drawGameOverScreen() {
   background(0);
 
@@ -178,7 +206,7 @@ function drawBattleBag() {
   const item = inventory[battle.bagIndex];
 
   fill(COLORS.highlight);
-  text(`> ${item.name} (${item.effectType}: +${item.effectValue})`, width - 350, height - 110);
+  text(`> ${item.name}${formatItemDetails(item)}`, width - 350, height - 110);
 
   fill(150);
   textSize(11);
@@ -239,7 +267,7 @@ function drawMainMenu() {
 
 function formatListEntryDetails(entry, isInventory) {
   if (isInventory) {
-    return ` (${entry.effectType}: +${entry.effectValue})`;
+    return formatItemDetails(entry);
   }
 
   const status = entry.equipped ? " [EQUIPADO]" : "";

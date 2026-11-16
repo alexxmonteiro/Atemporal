@@ -9,24 +9,89 @@ function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
 
+function createSection(zone, obstacleRects) {
+  return {
+    zone,
+    visibleObstacles: clipRectsToZone(obstacleRects, zone).map(
+      r => new Obstacle(r.x, r.y, r.w, r.h)
+    ),
+    solidRects: clipRectsToZone(obstacleRects, zone, SECTION_COLLISION_MARGIN),
+    companionPickups: [],
+    itemPickups: [],
+    doors: [],
+    enemies: [],
+  };
+}
+
+function findSectionIndex(x, y) {
+  return levelSections.findIndex(section => zoneContainsPoint(section.zone, x, y));
+}
+
+function sectionIndexOf(point) {
+  return Math.max(0, findSectionIndex(point.x, point.y));
+}
+
+function placeDoor(door) {
+  if (door.link) {
+    for (const index of door.link) levelSections[index].doors.push(door);
+    return;
+  }
+
+  levelSections[sectionIndexOf(boxCenter(door))].doors.push(door);
+}
+
+function rebuildCollisionBodies() {
+  collisionBodies = [
+    ...levelSections[currentSection].solidRects,
+    ...doors.filter(door => door.isSolid),
+  ];
+}
+
+function activateSection(index) {
+  const section = levelSections[index];
+
+  currentSection = index;
+  obstacles = section.visibleObstacles;
+  companionPickups = section.companionPickups.filter(pickup => !pickup.collected);
+  itemPickups = section.itemPickups.filter(pickup => !pickup.collected);
+  enemies = section.enemies.filter(enemy => !enemy.defeated);
+  doors = section.doors;
+
+  rebuildCollisionBodies();
+}
+
 function setupLevel(level) {
-  const data = LEVELS[level - 1] || {};
+  const data = LEVELS[level - 1] || scaleLevel({});
 
-  obstacles = (data.obstacles || []).map(o => new Obstacle(o.x, o.y, o.w, o.h));
-  companionPickups = (data.companions || []).map(
-    c => new CompanionPickup(c.x, c.y, c.name, c.attackBonus, c.hpBonus, c.luckBonus)
-  );
-  itemPickups = (data.items || []).map(
-    i => new ItemPickup(i.x, i.y, i.name, i.effectType, i.effectValue)
-  );
-  doors = (data.doors || []).map(d => new Door(d.x, d.y, d.w, d.h, d.type, d.direction));
-  enemies = (data.enemies || []).map(
-    e => new Enemy(e.x, e.y, e.name, e.maxHp, e.direction)
-  );
+  levelSections = data.sections.map(zone => createSection(zone, data.obstacles));
 
-  collisionBodies = [...obstacles, ...doors.filter(door => !door.isTrigger)];
+  for (const c of data.companions) {
+    const pickup = new CompanionPickup(c.x, c.y, c.name, c.attackBonus, c.hpBonus, c.luckBonus);
+    levelSections[sectionIndexOf(boxCenter(pickup))].companionPickups.push(pickup);
+  }
+
+  for (const i of data.items) {
+    if (i.effectType === ItemEffect.KEY && unlockedLocks.has(i.lockId)) continue;
+    const pickup = new ItemPickup(i.x, i.y, i.name, i.effectType, i.effectValue, i.lockId);
+    levelSections[sectionIndexOf(boxCenter(pickup))].itemPickups.push(pickup);
+  }
+
+  for (const d of data.doors) {
+    const door = new Door(d.x, d.y, d.w, d.h, d.type, d.direction, {
+      link: d.link,
+      lockId: d.lockId,
+    });
+    if (door.type === DoorType.LOCKED && unlockedLocks.has(door.lockId)) door.unlock();
+    placeDoor(door);
+  }
+
+  for (const e of data.enemies) {
+    const enemy = new Enemy(e.x, e.y, e.name, e.maxHp, e.direction);
+    levelSections[sectionIndexOf(boxCenter(enemy))].enemies.push(enemy);
+  }
 
   mainCharacter.isFrozen = false;
+  activateSection(sectionIndexOf(mainCharacter.center));
   gameCamera.snapTo(mainCharacter);
   gameState = GameState.PLAYING;
 }
@@ -37,6 +102,8 @@ function resetGameToStart() {
   mainCharacter.hp = mainCharacter.maxHp;
   inventory = [];
   companions = [];
+  unlockedLocks.clear();
+  notice.expiresAt = 0;
   setupLevel(currentLevel);
 }
 
@@ -83,8 +150,20 @@ function updateAndDrawEnemies() {
 }
 
 function checkTriggerDoors() {
-  const door = doors.find(d => d.checkTrigger(mainCharacter));
+  const door = doors.find(d => !d.isSectionLink && d.checkTrigger(mainCharacter));
   if (door) changeLevel(door.direction);
+}
+
+function checkSectionTransitions() {
+  const door = doors.find(d => d.isSectionLink && d.checkTrigger(mainCharacter));
+  if (!door) return;
+
+  const center = mainCharacter.center;
+  const target = door.link.find(index =>
+    zoneContainsPoint(levelSections[index].zone, center.x, center.y)
+  );
+
+  if (target !== undefined && target !== currentSection) activateSection(target);
 }
 
 function drawDoors() {
@@ -127,12 +206,14 @@ function draw() {
   if (gameState === GameState.PLAYING) {
     mainCharacter.move(collisionBodies);
     checkTriggerDoors();
+    checkSectionTransitions();
   }
 
   gameCamera.follow(mainCharacter);
 
   push();
   gameCamera.apply();
+  noStroke();
   for (const obstacle of obstacles) {
     obstacle.draw();
   }
@@ -145,4 +226,5 @@ function draw() {
 
   drawHud();
   drawStateOverlay();
+  drawNotice();
 }

@@ -17,6 +17,7 @@ const BattleMenu = Object.freeze({
 const DoorType = Object.freeze({
   INTERACT: "INTERACT",
   TRIGGER: "TRIGGER",
+  LOCKED: "LOCKED",
 });
 
 const DoorDirection = Object.freeze({
@@ -24,12 +25,19 @@ const DoorDirection = Object.freeze({
   PREVIOUS: "PREVIOUS",
 });
 
+const ItemEffect = Object.freeze({
+  HEAL: "heal",
+  KEY: "key",
+});
+
 const COLORS = Object.freeze({
   player: "#ff0000",
   enemy: "#800080",
   door: "#f39200",
+  lockedDoor: "#8b4513",
   companionPickup: "#00ff66",
   itemPickup: "#ff0000",
+  keyPickup: "#d4a017",
   obstacle: "#333333",
   highlight: "#ffcc00",
 });
@@ -37,6 +45,8 @@ const COLORS = Object.freeze({
 const PLAYER_START = Object.freeze({ x: 100, y: 100 });
 const ENEMY_TURN_DELAY_MS = 800;
 const LUCK_HIT_BONUS = 0.01;
+const SECTION_COLLISION_MARGIN = 30;
+const NOTICE_DURATION_MS = 2500;
 
 const BATTLE_BALANCE = Object.freeze({
   playerStrongAttack: { selfDamage: 15, hitChance: 0.2, attackMultiplier: 1.8, flatDamage: 10 },
@@ -65,8 +75,17 @@ const battle = {
   finished: false,
 };
 
+const notice = {
+  text: "",
+  expiresAt: 0,
+};
+
+const unlockedLocks = new Set();
+
 let mainCharacter;
 let currentLevel = 1;
+let currentSection = 0;
+let levelSections = [];
 let inventory = [];
 let companions = [];
 let obstacles = [];

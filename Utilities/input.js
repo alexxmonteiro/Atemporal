@@ -37,10 +37,35 @@ function findCollectable(pickups) {
   return pickups.find(pickup => !pickup.collected && pickup.checkCollision(mainCharacter));
 }
 
+function tryUnlockDoor(door) {
+  const keyIndex = inventory.findIndex(
+    item => item.effectType === ItemEffect.KEY && item.lockId === door.lockId
+  );
+
+  if (keyIndex === -1) {
+    showNotice("A porta está trancada. Encontre a chave certa para abri-la.");
+    return;
+  }
+
+  const [usedKey] = inventory.splice(keyIndex, 1);
+  door.unlock();
+  unlockedLocks.add(door.lockId);
+  rebuildCollisionBodies();
+  showNotice(`Você usou ${usedKey.name} e destrancou a porta!`);
+}
+
+function interactWithDoor(door) {
+  if (door.type === DoorType.LOCKED) {
+    tryUnlockDoor(door);
+  } else {
+    changeLevel(door.direction);
+  }
+}
+
 function tryInteract() {
   const door = doors.find(d => d.checkInteraction(mainCharacter));
   if (door) {
-    changeLevel(door.direction);
+    interactWithDoor(door);
     return;
   }
 
@@ -80,7 +105,11 @@ function handleMainMenuInput() {
 }
 
 function useInventoryItem(index) {
-  applyItemEffect(inventory[index]);
+  if (!applyItemEffect(inventory[index])) {
+    showNotice("Este item não pode ser usado aqui.");
+    return;
+  }
+
   inventory.splice(index, 1);
   menu.subIndex = clampIndexAfterRemoval(menu.subIndex, inventory.length);
 }

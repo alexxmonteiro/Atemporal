@@ -1,5 +1,5 @@
 class Door {
-  constructor(x, y, w, h, type = DoorType.INTERACT, direction = DoorDirection.NEXT) {
+  constructor(x, y, w, h, type = DoorType.INTERACT, direction = DoorDirection.NEXT, options = {}) {
     this.x = x;
     this.y = y;
     this.w = w;
@@ -7,14 +7,37 @@ class Door {
     this.type = type;
     this.direction = direction;
     this.interactionRadius = 10;
+    this.link = options.link || null;
+    this.lockId = options.lockId || null;
+    this.locked = type === DoorType.LOCKED;
   }
 
   get isTrigger() {
     return this.type === DoorType.TRIGGER;
   }
 
+  get isSectionLink() {
+    return this.isTrigger && this.link !== null;
+  }
+
+  get isLocked() {
+    return this.type === DoorType.LOCKED && this.locked;
+  }
+
+  get isHidden() {
+    return this.isTrigger || (this.type === DoorType.LOCKED && !this.locked);
+  }
+
+  get isSolid() {
+    return !this.isHidden;
+  }
+
   get bounds() {
     return { x: this.x, y: this.y, w: this.w, h: this.h };
+  }
+
+  unlock() {
+    this.locked = false;
   }
 
   checkTrigger(player) {
@@ -22,7 +45,7 @@ class Door {
   }
 
   checkInteraction(player) {
-    if (this.isTrigger) return false;
+    if (this.isHidden) return false;
 
     const playerCenter = player.center;
     const doorCenterX = this.x + this.w / 2;
@@ -35,14 +58,15 @@ class Door {
   }
 
   draw() {
-    if (this.isTrigger) return;
-    fill(COLORS.door);
+    if (this.isHidden) return;
+    fill(this.isLocked ? COLORS.lockedDoor : COLORS.door);
     noStroke();
     rect(this.x, this.y, this.w, this.h);
   }
 
   drawPrompt() {
-    if (this.isTrigger) return;
-    drawInteractionPrompt(this.x + this.w / 2, this.y);
+    if (this.isHidden) return;
+    const label = this.isLocked ? "Porta trancada - pressione E" : undefined;
+    drawInteractionPrompt(this.x + this.w / 2, this.y, label);
   }
 }

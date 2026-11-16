@@ -34,7 +34,7 @@ function rollHit(baseChance, luck) {
 }
 
 function applyItemEffect(item) {
-  if (item.effectType !== 'heal') return false;
+  if (item.effectType !== ItemEffect.HEAL) return false;
   mainCharacter.heal(item.effectValue);
   return true;
 }
@@ -120,9 +120,12 @@ function resolvePlayerAttack() {
 function useSelectedBagItem() {
   const item = inventory[battle.bagIndex];
 
-  if (applyItemEffect(item)) {
-    battle.log = `Você usou ${item.name} e recuperou ${item.effectValue} HP!`;
+  if (!applyItemEffect(item)) {
+    battle.log = `${item.name} não pode ser usado em batalha.`;
+    return;
   }
+
+  battle.log = `Você usou ${item.name} e recuperou ${item.effectValue} HP!`;
 
   inventory.splice(battle.bagIndex, 1);
   battle.bagIndex = clampIndexAfterRemoval(battle.bagIndex, inventory.length);
