@@ -6,6 +6,34 @@ const BATTLE_PANEL_COLORS = Object.freeze({
   menu: [35, 35, 50],
 });
 
+const MENU_TEXT = Object.freeze({
+  title: "4TEMP<>RAL;",
+  main: "EQUIPS",
+  inventory: "SUPRIMENTOS",
+  companions: "COMPANHEIROS",
+  empty: "Vazio",
+});
+
+const MENU_STATS_LABELS = Object.freeze({
+  level: "LVL",
+  exp: "EXP",
+  hp: "LFP",
+  attack: "ATK",
+  luck: "LUK",
+});
+
+const MENU_LAYOUT = Object.freeze({
+  referenceHeight: 854,
+  overlayAlpha: 128,
+  marginX: 48,
+  title: { y: 210, size: 68 },
+  subtitle: { y: 310, size: 56 },
+  stats: { y: 367, size: 22 },
+  options: { y: 463, step: 92, size: 56, selectedSize: 56 },
+  list: { y: 463, step: 56, size: 30, selectedSize: 32 },
+  hint: { bottom: 40, size: 18 },
+});
+
 function drawBar(x, y, w, h, percent, color) {
   fill(100);
   rect(x, y, w, h, 5);
@@ -25,7 +53,39 @@ function menuOption(label, idleLabel = label) {
   return { selected: `> ${label}`, idle: `  ${idleLabel}` };
 }
 
+function isMenuState() {
+  return (
+    gameState === GameState.MENU_MAIN ||
+    gameState === GameState.INVENTORY ||
+    gameState === GameState.COMPANIONS
+  );
+}
+
+function updateMenuSlide() {
+  const step = deltaTime / MENU_SLIDE.durationMs;
+  const next = menuSlide.progress + (isMenuState() ? step : -step);
+
+  menuSlide.progress = Math.min(1, Math.max(0, next));
+  menuSlide.eased = 1 - Math.pow(1 - menuSlide.progress, 3);
+}
+
+function menuWorldOffset() {
+  return width * MENU_SLIDE.offsetRatio * menuSlide.eased;
+}
+
+function drawMenuDim() {
+  if (menuSlide.eased <= 0) return;
+
+  push();
+  noStroke();
+  fill(0, 0, 0, MENU_LAYOUT.overlayAlpha * menuSlide.eased);
+  rect(0, 0, width, height);
+  pop();
+}
+
 function drawHud() {
+  if (isMenuState()) return;
+
   const stats = mainCharacter.getStats();
   const { x, y, w, h } = HUD_BAR;
 
@@ -191,9 +251,9 @@ function drawBattleOptionList(options, selectedIndex, hint) {
 function drawBattleMenuOptions() {
   if (battle.state === BattleMenu.MAIN) {
     drawBattleOptionList(
-      [menuOption("Atacar"), menuOption("Bolsa")],
+      [menuOption("Atacar"), menuOption("Suprimentos")],
       battle.selectedIndex,
-      "W/S: Navegar | ENTER: Selecionar"
+      "W/S: Navegar  ENTER: Selecionar"
     );
   } else if (battle.state === BattleMenu.FIGHT) {
     drawBattleOptionList(
@@ -202,7 +262,7 @@ function drawBattleMenuOptions() {
         menuOption("Ataque Fraco (Seguro)"),
       ],
       battle.subIndex,
-      "W/S: Mudar | ENTER: Atacar | ESC: Voltar"
+      "W/S: Mudar  ENTER: Atacar  ESC: Voltar"
     );
   } else if (battle.state === BattleMenu.BAG) {
     drawBattleBag();
@@ -224,59 +284,83 @@ function drawBattleBag() {
 
   fill(150);
   textSize(11);
-  text("W/S: Navegar | ENTER: Usar | ESC: Voltar", width - 350, height - 50);
+  text("W/S: Navegar  ENTER: Usar  ESC: Voltar", width - 350, height - 50);
+}
+
+function menuScale() {
+  return height / MENU_LAYOUT.referenceHeight;
 }
 
 function drawMenuOverlay() {
-  fill(0, 0, 0, 180);
-  rect(0, 0, width, height);
-
-  fill(40);
-  stroke(255);
-  strokeWeight(2);
-  rect(width / 2 - 240, height / 2 - 200, 480, 400, 10);
+  push();
   noStroke();
-
-  textAlign(CENTER, CENTER);
+  textAlign(LEFT, CENTER);
 
   if (gameState === GameState.MENU_MAIN) {
     drawMainMenu();
   } else if (gameState === GameState.INVENTORY || gameState === GameState.COMPANIONS) {
     drawListMenu();
   }
+  pop();
+}
+
+function drawMenuHeader(subtitle) {
+  const scale = menuScale();
+  const x = MENU_LAYOUT.marginX * scale;
+  const stats = mainCharacter.getStats();
+  const labels = MENU_STATS_LABELS;
+
+  fill(COLORS.highlight);
+  textSize(MENU_LAYOUT.title.size * scale);
+  text(MENU_TEXT.title, x, MENU_LAYOUT.title.y * scale);
+
+  fill(255);
+  textSize(MENU_LAYOUT.subtitle.size * scale);
+  text(subtitle, x, MENU_LAYOUT.subtitle.y * scale);
+
+  textSize(MENU_LAYOUT.stats.size * scale);
+  text(
+    `${labels.level}: ${mainCharacter.level}  ` +
+      `${labels.exp}: ${mainCharacter.exp}/${mainCharacter.expToNext}  ` +
+      `${labels.hp}: ${mainCharacter.displayHp}/${stats.maxHp}  ` +
+      `${labels.attack}: ${stats.attack}  ` +
+      `${labels.luck}: ${stats.luck}`,
+    x,
+    MENU_LAYOUT.stats.y * scale
+  );
+}
+
+function drawMenuHint(hint) {
+  const scale = menuScale();
+
+  fill(200);
+  textSize(MENU_LAYOUT.hint.size * scale);
+  text(hint, MENU_LAYOUT.marginX * scale, height - MENU_LAYOUT.hint.bottom * scale);
+}
+
+function drawMenuEntries(labels, selectedIndex, layout) {
+  const scale = menuScale();
+  const x = MENU_LAYOUT.marginX * scale;
+
+  labels.forEach((label, i) => {
+    const y = (layout.y + i * layout.step) * scale;
+
+    if (i === selectedIndex) {
+      fill(COLORS.highlight);
+      textSize(layout.selectedSize * scale);
+      text(`> ${label} <`, x, y);
+    } else {
+      fill(255);
+      textSize(layout.size * scale);
+      text(label, x, y);
+    }
+  });
 }
 
 function drawMainMenu() {
-  const stats = mainCharacter.getStats();
-
-  fill(255);
-  textSize(22);
-  text("MENU DE OPÇÕES", width / 2, height / 2 - 150);
-
-  textSize(13);
-  fill(200);
-  text(
-    `NV: ${mainCharacter.level} | EXP: ${mainCharacter.exp}/${mainCharacter.expToNext} | HP: ${mainCharacter.hp}/${stats.maxHp} | ATK: ${stats.attack} | SORTE: ${stats.luck}`,
-    width / 2,
-    height / 2 - 110
-  );
-
-  MENU_OPTIONS.forEach((option, i) => {
-    const y = height / 2 - 30 + i * 50;
-    if (i === menu.selectedIndex) {
-      fill(COLORS.highlight);
-      textSize(20);
-      text(`> ${option} <`, width / 2, y);
-    } else {
-      fill(200);
-      textSize(18);
-      text(option, width / 2, y);
-    }
-  });
-
-  fill(150);
-  textSize(12);
-  text("W/S: Navegar | ENTER: Confirmar", width / 2, height / 2 + 160);
+  drawMenuHeader(MENU_TEXT.main);
+  drawMenuEntries(MENU_OPTIONS, menu.selectedIndex, MENU_LAYOUT.options);
+  drawMenuHint("W/S: Navegar  ENTER: Confirmar");
 }
 
 function formatListEntryDetails(entry, isInventory) {
@@ -290,38 +374,24 @@ function formatListEntryDetails(entry, isInventory) {
 
 function drawListMenu() {
   const isInventory = gameState === GameState.INVENTORY;
-  const title = isInventory ? "INVENTÁRIO (USO ÚNICO)" : "COMPANHEIROS";
   const list = isInventory ? inventory : companions;
+  const subtitle = isInventory ? MENU_TEXT.inventory : MENU_TEXT.companions;
   const hint = isInventory
     ? "ENTER: Usar Item | ESC: Voltar"
     : "ENTER: Equipar/Desequipar | ESC: Voltar";
 
-  fill(255);
-  textSize(20);
-  text(title, width / 2, height / 2 - 150);
-
-  list.forEach((entry, i) => {
-    const y = height / 2 - 70 + i * 45;
-    const label = entry.name + formatListEntryDetails(entry, isInventory);
-
-    if (i === menu.subIndex) {
-      fill(COLORS.highlight);
-      textSize(15);
-      text(`> ${label} <`, width / 2, y);
-    } else {
-      fill(200);
-      textSize(14);
-      text(label, width / 2, y);
-    }
-  });
+  drawMenuHeader(subtitle);
 
   if (list.length === 0) {
-    fill(150);
-    textSize(16);
-    text("Vazio", width / 2, height / 2);
+    const scale = menuScale();
+
+    fill(200);
+    textSize(MENU_LAYOUT.list.selectedSize * scale);
+    text(MENU_TEXT.empty, MENU_LAYOUT.marginX * scale, MENU_LAYOUT.list.y * scale);
+  } else {
+    const labels = list.map(entry => entry.name + formatListEntryDetails(entry, isInventory));
+    drawMenuEntries(labels, menu.subIndex, MENU_LAYOUT.list);
   }
 
-  fill(150);
-  textSize(12);
-  text(hint, width / 2, height / 2 + 160);
+  drawMenuHint(hint);
 }

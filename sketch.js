@@ -1,5 +1,7 @@
-function setup() {
+async function setup() {
   createCanvas(windowWidth, windowHeight);
+  await document.fonts.load(`16px ${FONT_FAMILY}`);
+  textFont(FONT_FAMILY);
   mainCharacter = new MainCharacter(PLAYER_START.x, PLAYER_START.y);
   gameCamera = new Camera(CAMERA_SMOOTHING);
   setupLevel(1);
@@ -210,8 +212,10 @@ function draw() {
   }
 
   gameCamera.follow(mainCharacter);
+  updateMenuSlide();
 
   push();
+  translate(menuWorldOffset(), 0);
   gameCamera.apply();
   noStroke();
   for (const obstacle of obstacles) {
@@ -224,6 +228,7 @@ function draw() {
   mainCharacter.draw();
   pop();
 
+  drawMenuDim();
   drawHud();
   drawStateOverlay();
   drawNotice();

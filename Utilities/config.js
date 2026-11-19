@@ -42,6 +42,8 @@ const COLORS = Object.freeze({
   highlight: "#ffcc00",
 });
 
+const FONT_FAMILY = "AtemporalPixel";
+
 const PLAYER_START = Object.freeze({ x: 100, y: 100 });
 const ENEMY_TURN_DELAY_MS = 800;
 const LUCK_HIT_BONUS = 0.01;
@@ -49,6 +51,11 @@ const ENEMY_LUCK_DODGE_BONUS = 0.005;
 const MIN_HIT_CHANCE = 1 / 9;
 const SECTION_COLLISION_MARGIN = 30;
 const NOTICE_DURATION_MS = 2500;
+
+const MENU_SLIDE = Object.freeze({
+  durationMs: 250,
+  offsetRatio: 0.18,
+});
 
 const BATTLE_BALANCE = Object.freeze({
   playerStrongAttack: { minHitChance: 1 / 9, maxHitChance: 0.3, attackMultiplier: 2.5, flatDamage: 10 },
@@ -71,13 +78,18 @@ function expRequiredForLevel(level) {
   return Math.round(PROGRESSION.baseExp * Math.pow(PROGRESSION.expGrowth, level - 1));
 }
 
-const MENU_OPTIONS = ["Inventário", "Companheiros", "Sair"];
+const MENU_OPTIONS = ["Suprimentos", "Companheiros", "Sair"];
 
 let gameState = GameState.PLAYING;
 
 const menu = {
   selectedIndex: 0,
   subIndex: 0,
+};
+
+const menuSlide = {
+  progress: 0,
+  eased: 0,
 };
 
 const battle = {
