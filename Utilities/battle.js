@@ -9,6 +9,7 @@ function startBattle(enemy) {
     log: `Um ${enemy.name} selvagem apareceu!`,
     isPlayerTurn: true,
     finished: false,
+    levelUpMessage: "",
   });
 }
 
@@ -27,10 +28,38 @@ function concludeBattle() {
     battle.enemy.defeated = true;
   }
   resumeExploration();
+
+  if (battle.levelUpMessage) {
+    showNotice(battle.levelUpMessage);
+    battle.levelUpMessage = "";
+  }
 }
 
-function rollHit(baseChance, luck) {
-  return random() < baseChance + luck * LUCK_HIT_BONUS;
+function expRewardFor(enemy) {
+  return Math.max(
+    PROGRESSION.minEnemyExp,
+    Math.round(enemy.maxHp * PROGRESSION.expPerEnemyHp)
+  );
+}
+
+function rewardVictory() {
+  const reward = expRewardFor(battle.enemy);
+  const levelsGained = mainCharacter.gainExp(reward);
+
+  battle.log = `Você derrotou o ${battle.enemy.name}! +${reward} EXP`;
+
+  if (levelsGained > 0) {
+    const attackGain = PROGRESSION.attackPerLevel * levelsGained;
+    const hpGain = PROGRESSION.hpPerLevel * levelsGained;
+    battle.log += `\nNível ${mainCharacter.level}! ATK +${attackGain} | VIDA +${hpGain}`;
+    battle.levelUpMessage = `Subiu para o nível ${mainCharacter.level}! ATK +${attackGain} | VIDA +${hpGain}`;
+  }
+
+  battle.log += "\nPressione ENTER para continuar.";
+}
+
+function rollHit(baseChance, luck, luckBonus = LUCK_HIT_BONUS) {
+  return random() < Math.max(MIN_HIT_CHANCE, baseChance + luck * luckBonus);
 }
 
 function applyItemEffect(item) {
@@ -61,7 +90,7 @@ function enemyTurn() {
     ? BATTLE_BALANCE.enemyStrongAttack
     : BATTLE_BALANCE.enemyWeakAttack;
 
-  if (rollHit(attack.hitChance, stats.luck)) {
+  if (rollHit(attack.hitChance, -stats.luck, ENEMY_LUCK_DODGE_BONUS)) {
     mainCharacter.takeDamage(attack.damage);
     battle.log = `O inimigo usou ${attack.label} e acertou! -${attack.damage} HP`;
   } else {
@@ -80,14 +109,14 @@ function enemyTurn() {
 
 function performStrongAttack(stats) {
   const attack = BATTLE_BALANCE.playerStrongAttack;
-  mainCharacter.takeDamage(attack.selfDamage);
+  const baseChance = random(attack.minHitChance, attack.maxHitChance);
 
-  if (rollHit(attack.hitChance, stats.luck)) {
-    const damage = stats.attack * attack.attackMultiplier + attack.flatDamage;
+  if (rollHit(baseChance, stats.luck)) {
+    const damage = Math.round(stats.attack * attack.attackMultiplier + attack.flatDamage);
     damageEnemy(damage);
-    battle.log = `Ataque Forte acertou! (-${attack.selfDamage} HP seu) Causou ${Math.round(damage)} de dano!`;
+    battle.log = `Ataque Forte acertou! Causou ${damage} de dano!`;
   } else {
-    battle.log = `Você usou Ataque Forte (-${attack.selfDamage} HP seu), mas errou o golpe!`;
+    battle.log = `Você usou Ataque Forte, mas errou o golpe!`;
   }
 }
 
@@ -95,9 +124,9 @@ function performWeakAttack(stats) {
   const attack = BATTLE_BALANCE.playerWeakAttack;
 
   if (rollHit(attack.hitChance, stats.luck)) {
-    const damage = stats.attack * attack.attackMultiplier;
+    const damage = Math.round(stats.attack * attack.attackMultiplier);
     damageEnemy(damage);
-    battle.log = `Ataque Fraco acertou! Causou ${Math.round(damage)} de dano.`;
+    battle.log = `Ataque Fraco acertou! Causou ${damage} de dano.`;
   } else {
     battle.log = `Você usou Ataque Fraco, mas errou!`;
   }
@@ -109,7 +138,7 @@ function resolvePlayerAttack() {
     battle.finished = true;
     gameState = GameState.GAME_OVER;
   } else if (battle.enemy.hp <= 0) {
-    battle.log = `Você derrotou o ${battle.enemy.name}! Pressione ENTER para continuar.`;
+    rewardVictory();
     battle.finished = true;
   } else {
     scheduleEnemyTurn();

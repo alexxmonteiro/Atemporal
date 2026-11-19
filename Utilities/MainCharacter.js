@@ -13,6 +13,14 @@ class MainCharacter {
     this.hp = 100;
     this.baseAttack = 10;
     this.baseLuck = 10;
+
+    this.level = 1;
+    this.exp = 0;
+    this.expToNext = expRequiredForLevel(1);
+  }
+
+  get expProgress() {
+    return this.expToNext > 0 ? this.exp / this.expToNext : 0;
   }
 
   get center() {
@@ -45,6 +53,39 @@ class MainCharacter {
       luck: this.baseLuck + bonusLuck,
       hp: Math.min(this.hp, this.maxHp + bonusHp),
     };
+  }
+
+  gainExp(amount) {
+    this.exp += amount;
+    let levelsGained = 0;
+
+    while (this.exp >= this.expToNext) {
+      this.exp -= this.expToNext;
+      this.levelUp();
+      levelsGained++;
+    }
+
+    return levelsGained;
+  }
+
+  levelUp() {
+    this.level++;
+    this.baseAttack += PROGRESSION.attackPerLevel;
+    this.maxHp += PROGRESSION.hpPerLevel;
+    this.hp = PROGRESSION.healOnLevelUp
+      ? this.getStats().maxHp
+      : this.hp + PROGRESSION.hpPerLevel;
+    this.expToNext = expRequiredForLevel(this.level);
+  }
+
+  resetProgress() {
+    this.level = 1;
+    this.exp = 0;
+    this.maxHp = 100;
+    this.hp = 100;
+    this.baseAttack = 10;
+    this.baseLuck = 10;
+    this.expToNext = expRequiredForLevel(1);
   }
 
   heal(amount) {

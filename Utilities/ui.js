@@ -36,6 +36,20 @@ function drawHud() {
   textSize(12);
   textAlign(LEFT, CENTER);
   text(`HP: ${mainCharacter.displayHp} / ${stats.maxHp}`, x + 10, y + h / 2);
+
+  const expY = y + h + 8;
+  const expH = 14;
+
+  drawBar(x, expY, w, expH, mainCharacter.expProgress, [255, 200, 0]);
+
+  fill(0);
+  textSize(11);
+  textAlign(LEFT, CENTER);
+  text(
+    `NV ${mainCharacter.level}  |  EXP: ${mainCharacter.exp} / ${mainCharacter.expToNext}`,
+    x + 10,
+    expY + expH / 2
+  );
 }
 
 function drawNotice() {
@@ -124,7 +138,7 @@ function drawBattlePlayerPanel() {
   fill(255);
   textSize(20);
   textAlign(LEFT, TOP);
-  text("Jogador", 70, height - 245);
+  text(`Jogador  NV ${mainCharacter.level}`, 70, height - 245);
 
   textSize(14);
   text(`HP: ${mainCharacter.displayHp} / ${stats.maxHp}  |  SORTE: ${stats.luck}`, 70, height - 215);
@@ -184,7 +198,7 @@ function drawBattleMenuOptions() {
   } else if (battle.state === BattleMenu.FIGHT) {
     drawBattleOptionList(
       [
-        menuOption("Ataque Forte (-15 HP, Risco)"),
+        menuOption("Ataque Forte (Arriscado)"),
         menuOption("Ataque Fraco (Seguro)"),
       ],
       battle.subIndex,
@@ -242,7 +256,7 @@ function drawMainMenu() {
   textSize(13);
   fill(200);
   text(
-    `HP: ${mainCharacter.hp}/${stats.maxHp} | ATK: ${stats.attack} | SORTE: ${stats.luck}`,
+    `NV: ${mainCharacter.level} | EXP: ${mainCharacter.exp}/${mainCharacter.expToNext} | HP: ${mainCharacter.hp}/${stats.maxHp} | ATK: ${stats.attack} | SORTE: ${stats.luck}`,
     width / 2,
     height / 2 - 110
   );

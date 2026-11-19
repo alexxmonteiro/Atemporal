@@ -99,7 +99,7 @@ function setupLevel(level) {
 function resetGameToStart() {
   currentLevel = 1;
   mainCharacter.resetPosition(PLAYER_START.x, PLAYER_START.y);
-  mainCharacter.hp = mainCharacter.maxHp;
+  mainCharacter.resetProgress();
   inventory = [];
   companions = [];
   unlockedLocks.clear();

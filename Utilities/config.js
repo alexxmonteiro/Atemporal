@@ -45,15 +45,31 @@ const COLORS = Object.freeze({
 const PLAYER_START = Object.freeze({ x: 100, y: 100 });
 const ENEMY_TURN_DELAY_MS = 800;
 const LUCK_HIT_BONUS = 0.01;
+const ENEMY_LUCK_DODGE_BONUS = 0.005;
+const MIN_HIT_CHANCE = 1 / 9;
 const SECTION_COLLISION_MARGIN = 30;
 const NOTICE_DURATION_MS = 2500;
 
 const BATTLE_BALANCE = Object.freeze({
-  playerStrongAttack: { selfDamage: 15, hitChance: 0.2, attackMultiplier: 1.8, flatDamage: 10 },
-  playerWeakAttack: { hitChance: 0.85, attackMultiplier: 0.7 },
-  enemyStrongAttack: { label: "ATAQUE FORTE", hitChance: 0.5, damage: 25 },
-  enemyWeakAttack: { label: "ATAQUE FRACO", hitChance: 0.8, damage: 10 },
+  playerStrongAttack: { minHitChance: 1 / 9, maxHitChance: 0.3, attackMultiplier: 2.5, flatDamage: 10 },
+  playerWeakAttack: { hitChance: 0.85, attackMultiplier: 1.2 },
+  enemyStrongAttack: { label: "ATAQUE FORTE", hitChance: 0.6, damage: 18 },
+  enemyWeakAttack: { label: "ATAQUE FRACO", hitChance: 0.9, damage: 8 },
 });
+
+const PROGRESSION = Object.freeze({
+  baseExp: 10,
+  expGrowth: 1.5,
+  attackPerLevel: 2,
+  hpPerLevel: 15,
+  healOnLevelUp: true,
+  expPerEnemyHp: 0.2,
+  minEnemyExp: 1,
+});
+
+function expRequiredForLevel(level) {
+  return Math.round(PROGRESSION.baseExp * Math.pow(PROGRESSION.expGrowth, level - 1));
+}
 
 const MENU_OPTIONS = ["Inventário", "Companheiros", "Sair"];
 
@@ -73,6 +89,7 @@ const battle = {
   log: "Um inimigo apareceu!",
   isPlayerTurn: true,
   finished: false,
+  levelUpMessage: "",
 };
 
 const notice = {
