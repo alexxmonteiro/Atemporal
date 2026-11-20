@@ -23,10 +23,28 @@ const HUD_REF = Object.freeze({
   cursorBlinkMs: 500,
 });
 
-const BATTLE_PANEL_COLORS = Object.freeze({
-  info: [45, 45, 65],
-  log: [25, 25, 35],
-  menu: [35, 35, 50],
+const BATTLE_REF = Object.freeze({
+  sprite: { x: 269, y: 75, w: 80, h: 85 },
+  enemy: {
+    icon: { x: 580, y: 8, size: 33 },
+    bar: { x: 365, y: 7, w: 216, h: 19 },
+    name: { x: 579, y: 31 },
+  },
+  player: {
+    icon: { x: 200, y: 204, size: 33 },
+    bar: { x: 234, y: 219, w: 215, h: 19 },
+    name: { x: 236, y: 213 },
+  },
+  iconInset: 1.5,
+  iconRadius: 1,
+  barRadius: 1,
+  nameFontSize: 8.5,
+  menuFontSize: 12,
+  hintFontSize: 5.5,
+  barTrack: "#6b7280",
+  menu: { padX: 8, firstLine: 14, lineStep: 17, hintY: 62, visibleLines: 2 },
+  playerName: "Andarilho",
+  hint: "W/S Navegar  Enter: Confirmar  ESC: Voltar",
 });
 
 const MENU_TEXT = Object.freeze({
@@ -57,6 +75,8 @@ const MENU_LAYOUT = Object.freeze({
   list: { y: 463, step: 56, size: 30, selectedSize: 32 },
   hint: { bottom: 40, size: 18 },
 });
+
+let battleSprite = null;
 
 function getHudLayout() {
   const scale = Math.max(0.1, Math.min(width / HUD_REF.w, height / HUD_REF.h));
@@ -126,6 +146,14 @@ function visibleLogLines(maxLines, maxWidth) {
   return result.slice(-maxLines);
 }
 
+function battleLogLines(maxLines, maxWidth) {
+  return wrapText(battle.log, maxWidth).slice(-maxLines);
+}
+
+function isBattleActive() {
+  return gameState === GameState.BATTLE && battle.enemy !== null;
+}
+
 function drawHudBackdrop() {
   const view = getGameViewport();
 
@@ -187,7 +215,7 @@ function drawHudTab(layout) {
   text(`Nivel ${currentLevel}`, x + w / 2, y + HUD_REF.tabTextY * layout.scale);
 }
 
-function drawHudLog(layout) {
+function drawHudLog(layout, getLines = visibleLogLines) {
   const { scale, log } = layout;
   const padX = HUD_REF.padX * scale;
   const x = log.x + padX;
@@ -204,7 +232,7 @@ function drawHudLog(layout) {
   textAlign(LEFT, CENTER);
   textSize(HUD_REF.fontSize * scale);
 
-  const lines = visibleLogLines(maxLines - 1, log.w - padX * 2);
+  const lines = getLines(maxLines - 1, log.w - padX * 2);
 
   fill(HUD_COLORS.logText);
   lines.forEach((line, i) => text(line, x, firstLineY + i * lineStep));
@@ -238,36 +266,168 @@ function drawHudStats(layout) {
   lines.forEach((line, i) => text(line, x, firstLineY + i * lineStep));
 }
 
+function battleRect(layout, r) {
+  return {
+    x: layout.game.x + r.x * layout.scale,
+    y: layout.game.y + r.y * layout.scale,
+    w: (r.w !== undefined ? r.w : r.size) * layout.scale,
+    h: (r.h !== undefined ? r.h : r.size) * layout.scale,
+  };
+}
+
+function drawBattleSprite(layout) {
+  const box = battleRect(layout, BATTLE_REF.sprite);
+
+  noStroke();
+
+  if (!battleSprite) {
+    fill(255);
+    rect(box.x, box.y, box.w, box.h);
+    return;
+  }
+
+  drawingContext.imageSmoothingEnabled = false;
+  image(battleSprite, box.x, box.y, box.w, box.h);
+  drawingContext.imageSmoothingEnabled = true;
+}
+
+function drawBattleIcon(layout, ref, color) {
+  const box = battleRect(layout, ref);
+  const inset = BATTLE_REF.iconInset * layout.scale;
+
+  stroke(HUD_COLORS.border);
+  strokeWeight(layout.stroke);
+  fill(HUD_COLORS.background);
+  rect(box.x, box.y, box.w, box.h, BATTLE_REF.iconRadius * layout.scale);
+
+  noStroke();
+  fill(color);
+  rect(box.x + inset, box.y + inset, box.w - inset * 2, box.h - inset * 2);
+}
+
+function drawBattleBar(layout, ref, percent, anchorRight) {
+  const box = battleRect(layout, ref);
+  const fillWidth = box.w * Math.min(1, Math.max(0, percent));
+  const x = anchorRight ? box.x + box.w - fillWidth : box.x;
+
+  noStroke();
+  fill(BATTLE_REF.barTrack);
+  rect(box.x, box.y, box.w, box.h, BATTLE_REF.barRadius * layout.scale);
+
+  if (fillWidth <= 0) return;
+
+  fill(255);
+  rect(x, box.y, fillWidth, box.h, BATTLE_REF.barRadius * layout.scale);
+}
+
+function drawBattleName(layout, ref, label, alignment) {
+  const x = layout.game.x + ref.x * layout.scale;
+  const y = layout.game.y + ref.y * layout.scale;
+
+  noStroke();
+  fill(HUD_COLORS.text);
+  textAlign(alignment, CENTER);
+  textSize(BATTLE_REF.nameFontSize * layout.scale);
+  text(label, x, y);
+}
+
+function drawBattleArena() {
+  const layout = getHudLayout();
+  const enemy = battle.enemy;
+  const stats = mainCharacter.getStats();
+
+  push();
+  noStroke();
+  fill(HUD_COLORS.background);
+  rect(layout.game.x, layout.game.y, layout.game.w, layout.game.h);
+
+  drawBattleSprite(layout);
+
+  drawBattleBar(layout, BATTLE_REF.enemy.bar, enemy.hp / enemy.maxHp, true);
+  drawBattleIcon(layout, BATTLE_REF.enemy.icon, 255);
+  drawBattleName(layout, BATTLE_REF.enemy.name, enemy.name, RIGHT);
+
+  drawBattleBar(layout, BATTLE_REF.player.bar, mainCharacter.displayHp / stats.maxHp, false);
+  drawBattleIcon(layout, BATTLE_REF.player.icon, COLORS.player);
+  drawBattleName(layout, BATTLE_REF.player.name, BATTLE_REF.playerName, LEFT);
+  pop();
+}
+
+function battleMenuEntries() {
+  if (battle.state === BattleMenu.FIGHT) {
+    return { labels: ["Ataque Forte", "Ataque Fraco"], selected: battle.subIndex };
+  }
+
+  if (battle.state === BattleMenu.BAG) {
+    if (inventory.length === 0) return { labels: ["Bolsa vazia"], selected: -1 };
+    return { labels: inventory.map(item => item.name), selected: battle.bagIndex };
+  }
+
+  return { labels: ["Atacar", "Bolsa"], selected: battle.selectedIndex };
+}
+
+function drawBattleMenuPanel(layout) {
+  const { scale, stats: panel } = layout;
+  const ref = BATTLE_REF.menu;
+  const x = panel.x + ref.padX * scale;
+
+  drawHudPanel(panel, layout);
+  noStroke();
+  textAlign(LEFT, CENTER);
+
+  if (battle.isPlayerTurn && !battle.finished) {
+    const { labels, selected } = battleMenuEntries();
+    const start = Math.max(
+      0,
+      Math.min(selected - 1, labels.length - ref.visibleLines)
+    );
+
+    textSize(BATTLE_REF.menuFontSize * scale);
+    labels.slice(start, start + ref.visibleLines).forEach((label, i) => {
+      const isSelected = start + i === selected;
+      fill(isSelected ? COLORS.highlight : 255);
+      text(
+        isSelected ? `> ${label} <` : label,
+        x,
+        panel.y + (ref.firstLine + i * ref.lineStep) * scale
+      );
+    });
+  }
+
+  if (battle.finished) return;
+
+  const maxHintWidth = panel.w - ref.padX * scale * 2;
+  let hintSize = BATTLE_REF.hintFontSize * scale;
+
+  textSize(hintSize);
+  while (textWidth(BATTLE_REF.hint) > maxHintWidth && hintSize > 1) {
+    hintSize -= 0.25;
+    textSize(hintSize);
+  }
+
+  fill(HUD_COLORS.text);
+  text(BATTLE_REF.hint, x, panel.y + ref.hintY * scale);
+}
+
 function drawHudFrame() {
   const layout = getHudLayout();
 
   push();
   drawHudGameBorder(layout);
-  drawHudTab(layout);
-  drawHudPanel(layout.log, layout);
-  drawHudPanel(layout.stats, layout);
-  drawHudLog(layout);
-  drawHudStats(layout);
+
+  if (isBattleActive()) {
+    drawHudPanel(layout.log, layout);
+    drawHudLog(layout, battleLogLines);
+    drawBattleMenuPanel(layout);
+  } else {
+    drawHudTab(layout);
+    drawHudPanel(layout.log, layout);
+    drawHudPanel(layout.stats, layout);
+    drawHudLog(layout);
+    drawHudStats(layout);
+  }
+
   pop();
-}
-
-function drawBar(x, y, w, h, percent, color) {
-  fill(100);
-  rect(x, y, w, h, 5);
-  fill(...color);
-  rect(x, y, w * percent, h, 5);
-}
-
-function drawBattlePanel(x, y, w, h, color) {
-  fill(...color);
-  stroke(200);
-  strokeWeight(2);
-  rect(x, y, w, h, 10);
-  noStroke();
-}
-
-function menuOption(label, idleLabel = label) {
-  return { selected: `> ${label}`, idle: `  ${idleLabel}` };
 }
 
 function isMenuState() {
@@ -311,140 +471,6 @@ function drawGameOverScreen() {
   fill(255);
   textSize(20);
   text("Aperte R para reviver", width / 2, height / 2 + 30);
-}
-
-function drawBattleScreen() {
-  background(20, 20, 35);
-  drawBattleEnemySprite();
-  drawBattleEnemyPanel();
-  drawBattlePlayerPanel();
-  drawBattleLog();
-  drawBattleMenuPanel();
-}
-
-function drawBattleEnemySprite() {
-  fill(COLORS.enemy);
-  noStroke();
-  rect(width / 2 - 40, height / 2 - 90, 80, 80, 10);
-
-  fill(255);
-  textSize(16);
-  textAlign(CENTER, CENTER);
-  text(battle.enemy.name, width / 2, height / 2 - 115);
-}
-
-function drawBattleEnemyPanel() {
-  const enemy = battle.enemy;
-  const hp = Math.max(0, enemy.hp);
-
-  drawBattlePanel(width - 400, 40, 350, 110, BATTLE_PANEL_COLORS.info);
-
-  fill(255);
-  textSize(20);
-  textAlign(LEFT, TOP);
-  text(enemy.name, width - 380, 55);
-
-  textSize(14);
-  text(`HP: ${hp} / ${enemy.maxHp}`, width - 380, 85);
-
-  drawBar(width - 380, 110, 300, 15, hp / enemy.maxHp, [0, 220, 100]);
-}
-
-function drawBattlePlayerPanel() {
-  const stats = mainCharacter.getStats();
-
-  drawBattlePanel(50, height - 260, 350, 110, BATTLE_PANEL_COLORS.info);
-
-  fill(255);
-  textSize(20);
-  textAlign(LEFT, TOP);
-  text(`Jogador  NV ${mainCharacter.level}`, 70, height - 245);
-
-  textSize(14);
-  text(`HP: ${mainCharacter.displayHp} / ${stats.maxHp}  |  SORTE: ${stats.luck}`, 70, height - 215);
-
-  drawBar(70, height - 190, 300, 15, mainCharacter.displayHp / stats.maxHp, [0, 150, 255]);
-}
-
-function drawBattleLog() {
-  drawBattlePanel(50, height - 130, width - 450, 90, BATTLE_PANEL_COLORS.log);
-
-  fill(255);
-  textSize(16);
-  textAlign(LEFT, TOP);
-  text(battle.log, 70, height - 110);
-}
-
-function drawBattleMenuPanel() {
-  const centerX = width - 380 + 165;
-  const centerY = height - 130 + 45;
-
-  drawBattlePanel(width - 380, height - 130, 330, 90, BATTLE_PANEL_COLORS.menu);
-  textSize(18);
-
-  if (battle.finished) {
-    fill(255, 200, 0);
-    textAlign(CENTER, CENTER);
-    text("Pressione ENTER para continuar", centerX, centerY);
-  } else if (!battle.isPlayerTurn) {
-    fill(200, 200, 200);
-    textAlign(CENTER, CENTER);
-    text("Turno do Inimigo...", centerX, centerY);
-  } else {
-    textAlign(LEFT, TOP);
-    drawBattleMenuOptions();
-  }
-}
-
-function drawBattleOptionList(options, selectedIndex, hint) {
-  options.forEach((option, i) => {
-    const isSelected = i === selectedIndex;
-    fill(isSelected ? COLORS.highlight : 255);
-    text(isSelected ? option.selected : option.idle, width - 350, height - 110 + i * 30);
-  });
-
-  fill(150);
-  textSize(11);
-  text(hint, width - 350, height - 50);
-}
-
-function drawBattleMenuOptions() {
-  if (battle.state === BattleMenu.MAIN) {
-    drawBattleOptionList(
-      [menuOption("Atacar"), menuOption("Suprimentos")],
-      battle.selectedIndex,
-      "W/S: Navegar  ENTER: Selecionar"
-    );
-  } else if (battle.state === BattleMenu.FIGHT) {
-    drawBattleOptionList(
-      [
-        menuOption("Ataque Forte (Arriscado)"),
-        menuOption("Ataque Fraco (Seguro)"),
-      ],
-      battle.subIndex,
-      "W/S: Mudar  ENTER: Atacar  ESC: Voltar"
-    );
-  } else if (battle.state === BattleMenu.BAG) {
-    drawBattleBag();
-  }
-}
-
-function drawBattleBag() {
-  if (inventory.length === 0) {
-    fill(255);
-    textSize(16);
-    text("A bolsa está vazia!", width - 350, height - 110);
-    return;
-  }
-
-  const item = inventory[battle.bagIndex];
-
-  fill(COLORS.highlight);
-  text(`> ${item.name}${formatItemDetails(item)}`, width - 350, height - 110);
-
-  fill(150);
-  textSize(11);
-  text("W/S: Navegar  ENTER: Usar  ESC: Voltar", width - 350, height - 50);
 }
 
 function isFullscreenWindow() {

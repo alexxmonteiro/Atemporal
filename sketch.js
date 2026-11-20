@@ -7,6 +7,13 @@ async function setup() {
 
   await document.fonts.load(`16px ${FONT_FAMILY}`);
   textFont(FONT_FAMILY);
+
+  try {
+    battleSprite = await loadImage("../assets/battle-fase.png");
+  } catch (error) {
+    battleSprite = null;
+  }
+
   mainCharacter = new MainCharacter(PLAYER_START.x, PLAYER_START.y);
   gameCamera = new Camera(CAMERA_SMOOTHING);
   setupLevel(1);
@@ -194,13 +201,11 @@ function drawPickups(pickups) {
 }
 
 function drawStateOverlay() {
-  if (gameState === GameState.PLAYING) return;
+  if (gameState === GameState.PLAYING || gameState === GameState.BATTLE) return;
 
   if (gameState === GameState.BATTLE_TRANSITION) {
     fill(0);
     rect(0, 0, width, height);
-  } else if (gameState === GameState.BATTLE) {
-    drawBattleScreen();
   } else if (gameState === GameState.GAME_OVER) {
     drawGameOverScreen();
   } else {
@@ -245,8 +250,14 @@ function draw() {
 
   push();
   translate(menuWorldOffset(), 0);
-  drawHudBackdrop();
-  drawWorld();
+
+  if (isBattleActive()) {
+    drawBattleArena();
+  } else {
+    drawHudBackdrop();
+    drawWorld();
+  }
+
   drawHudFrame();
   pop();
 
