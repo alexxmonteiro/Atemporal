@@ -1,4 +1,27 @@
-const HUD_BAR = Object.freeze({ x: 20, y: 20, w: 200, h: 20 });
+const HUD_COLORS = Object.freeze({
+  background: "#111827",
+  border: "#c9d1db",
+  text: "#e8edf5",
+  logText: "#aeb8c6",
+  viewport: "#ffffff",
+});
+
+const HUD_REF = Object.freeze({
+  w: 765,
+  h: 347,
+  game: { x: 73, y: 25, w: 621, h: 240 },
+  log: { x: 73, y: 271, w: 458, h: 71 },
+  stats: { x: 537, y: 271, w: 157, h: 71 },
+  tab: { x: 339, y: 25, w: 98, h: 36, corner: 3 },
+  panelRadius: 1.5,
+  padX: 4,
+  firstLine: 10.5,
+  lineStep: 16.5,
+  fontSize: 10,
+  tabFontSize: 12,
+  tabTextY: 13.5,
+  cursorBlinkMs: 500,
+});
 
 const BATTLE_PANEL_COLORS = Object.freeze({
   info: [45, 45, 65],
@@ -24,6 +47,7 @@ const MENU_STATS_LABELS = Object.freeze({
 
 const MENU_LAYOUT = Object.freeze({
   referenceHeight: 854,
+  fullscreenScale: 0.75,
   overlayAlpha: 128,
   marginX: 48,
   title: { y: 210, size: 68 },
@@ -33,6 +57,199 @@ const MENU_LAYOUT = Object.freeze({
   list: { y: 463, step: 56, size: 30, selectedSize: 32 },
   hint: { bottom: 40, size: 18 },
 });
+
+function getHudLayout() {
+  const scale = Math.max(0.1, Math.min(width / HUD_REF.w, height / HUD_REF.h));
+  const originX = (width - HUD_REF.w * scale) / 2;
+  const originY = (height - HUD_REF.h * scale) / 2;
+
+  const place = r => {
+    const x1 = Math.round(originX + r.x * scale);
+    const y1 = Math.round(originY + r.y * scale);
+    const x2 = Math.round(originX + (r.x + r.w) * scale);
+    const y2 = Math.round(originY + (r.y + r.h) * scale);
+    return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+  };
+
+  return {
+    scale,
+    stroke: Math.max(1, Math.round(scale)),
+    game: place(HUD_REF.game),
+    log: place(HUD_REF.log),
+    stats: place(HUD_REF.stats),
+    tab: { ...place(HUD_REF.tab), corner: HUD_REF.tab.corner * scale },
+  };
+}
+
+function getGameViewport() {
+  return getHudLayout().game;
+}
+
+function wrapText(content, maxWidth) {
+  const lines = [];
+
+  for (const paragraph of String(content).split("\n")) {
+    let current = "";
+
+    for (const word of paragraph.split(" ")) {
+      const candidate = current ? `${current} ${word}` : word;
+
+      if (textWidth(candidate) <= maxWidth) {
+        current = candidate;
+        continue;
+      }
+
+      if (current) lines.push(current);
+      current = word;
+
+      while (textWidth(current) > maxWidth && current.length > 1) {
+        let cut = current.length - 1;
+        while (cut > 1 && textWidth(current.slice(0, cut)) > maxWidth) cut--;
+        lines.push(current.slice(0, cut));
+        current = current.slice(cut);
+      }
+    }
+
+    lines.push(current);
+  }
+
+  return lines;
+}
+
+function visibleLogLines(maxLines, maxWidth) {
+  const result = [];
+
+  for (let i = terminalLog.length - 1; i >= 0 && result.length < maxLines; i--) {
+    result.unshift(...wrapText(terminalLog[i], maxWidth));
+  }
+
+  return result.slice(-maxLines);
+}
+
+function drawHudBackdrop() {
+  const view = getGameViewport();
+
+  push();
+  noStroke();
+  fill(HUD_COLORS.viewport);
+  rect(view.x, view.y, view.w, view.h);
+  pop();
+}
+
+function drawHudPanel(panel, layout) {
+  stroke(HUD_COLORS.border);
+  strokeWeight(layout.stroke);
+  fill(HUD_COLORS.background);
+  rect(panel.x, panel.y, panel.w, panel.h, HUD_REF.panelRadius * layout.scale);
+}
+
+function drawHudGameBorder(layout) {
+  const game = layout.game;
+
+  noFill();
+  stroke(HUD_COLORS.border);
+  strokeWeight(layout.stroke);
+  rect(game.x, game.y, game.w, game.h);
+}
+
+function drawHudTab(layout) {
+  const { x, y, w, h, corner } = layout.tab;
+  const cover = layout.stroke;
+
+  noStroke();
+  fill(HUD_COLORS.background);
+  beginShape();
+  vertex(x, y - cover);
+  vertex(x, y + h - corner);
+  vertex(x + corner, y + h);
+  vertex(x + w - corner, y + h);
+  vertex(x + w, y + h - corner);
+  vertex(x + w, y - cover);
+  endShape(CLOSE);
+
+  noFill();
+  stroke(HUD_COLORS.border);
+  strokeWeight(layout.stroke);
+  strokeJoin(MITER);
+  beginShape();
+  vertex(x, y);
+  vertex(x, y + h - corner);
+  vertex(x + corner, y + h);
+  vertex(x + w - corner, y + h);
+  vertex(x + w, y + h - corner);
+  vertex(x + w, y);
+  endShape();
+
+  noStroke();
+  fill(HUD_COLORS.text);
+  textAlign(CENTER, CENTER);
+  textSize(HUD_REF.tabFontSize * layout.scale);
+  text(`Nivel ${currentLevel}`, x + w / 2, y + HUD_REF.tabTextY * layout.scale);
+}
+
+function drawHudLog(layout) {
+  const { scale, log } = layout;
+  const padX = HUD_REF.padX * scale;
+  const x = log.x + padX;
+  const firstLineY = log.y + HUD_REF.firstLine * scale;
+  const lineStep = HUD_REF.lineStep * scale;
+  const maxLines = Math.max(
+    1,
+    Math.floor(
+      (HUD_REF.log.h - HUD_REF.firstLine - HUD_REF.lineStep / 2 - 2) / HUD_REF.lineStep
+    ) + 1
+  );
+
+  noStroke();
+  textAlign(LEFT, CENTER);
+  textSize(HUD_REF.fontSize * scale);
+
+  const lines = visibleLogLines(maxLines - 1, log.w - padX * 2);
+
+  fill(HUD_COLORS.logText);
+  lines.forEach((line, i) => text(line, x, firstLineY + i * lineStep));
+
+  const promptY = firstLineY + lines.length * lineStep;
+
+  fill(HUD_COLORS.text);
+  text(">", x, promptY);
+
+  if (Math.floor(millis() / HUD_REF.cursorBlinkMs) % 2 === 0) {
+    text("_", x + textWidth(">"), promptY);
+  }
+}
+
+function drawHudStats(layout) {
+  const { scale, stats: panel } = layout;
+  const stats = mainCharacter.getStats();
+  const x = panel.x + HUD_REF.padX * scale;
+  const firstLineY = panel.y + HUD_REF.firstLine * scale;
+  const lineStep = HUD_REF.lineStep * scale;
+  const lines = [
+    `LFP: ${mainCharacter.displayHp}/${stats.maxHp}`,
+    `EXP: ${mainCharacter.exp}/${mainCharacter.expToNext}`,
+    `LVL: ${mainCharacter.level}`,
+  ];
+
+  noStroke();
+  fill(HUD_COLORS.text);
+  textAlign(LEFT, CENTER);
+  textSize(HUD_REF.fontSize * scale);
+  lines.forEach((line, i) => text(line, x, firstLineY + i * lineStep));
+}
+
+function drawHudFrame() {
+  const layout = getHudLayout();
+
+  push();
+  drawHudGameBorder(layout);
+  drawHudTab(layout);
+  drawHudPanel(layout.log, layout);
+  drawHudPanel(layout.stats, layout);
+  drawHudLog(layout);
+  drawHudStats(layout);
+  pop();
+}
 
 function drawBar(x, y, w, h, percent, color) {
   fill(100);
@@ -80,63 +297,6 @@ function drawMenuDim() {
   noStroke();
   fill(0, 0, 0, MENU_LAYOUT.overlayAlpha * menuSlide.eased);
   rect(0, 0, width, height);
-  pop();
-}
-
-function drawHud() {
-  if (isMenuState()) return;
-
-  const stats = mainCharacter.getStats();
-  const { x, y, w, h } = HUD_BAR;
-
-  noStroke();
-  drawBar(x, y, w, h, mainCharacter.displayHp / stats.maxHp, [0, 255, 0]);
-
-  fill(0);
-  textSize(12);
-  textAlign(LEFT, CENTER);
-  text(`HP: ${mainCharacter.displayHp} / ${stats.maxHp}`, x + 10, y + h / 2);
-
-  const expY = y + h + 8;
-  const expH = 14;
-
-  drawBar(x, expY, w, expH, mainCharacter.expProgress, [255, 200, 0]);
-
-  fill(0);
-  textSize(11);
-  textAlign(LEFT, CENTER);
-  text(
-    `NV ${mainCharacter.level}  |  EXP: ${mainCharacter.exp} / ${mainCharacter.expToNext}`,
-    x + 10,
-    expY + expH / 2
-  );
-}
-
-function drawNotice() {
-  if (
-    gameState === GameState.BATTLE ||
-    gameState === GameState.GAME_OVER ||
-    gameState === GameState.BATTLE_TRANSITION
-  ) {
-    return;
-  }
-
-  if (millis() >= notice.expiresAt) return;
-
-  push();
-  textSize(16);
-  textAlign(CENTER, CENTER);
-
-  const boxWidth = textWidth(notice.text) + 40;
-
-  fill(0, 0, 0, 200);
-  stroke(COLORS.highlight);
-  strokeWeight(2);
-  rect(width / 2 - boxWidth / 2, height - 90, boxWidth, 44, 8);
-
-  noStroke();
-  fill(255);
-  text(notice.text, width / 2, height - 68);
   pop();
 }
 
@@ -287,8 +447,16 @@ function drawBattleBag() {
   text("W/S: Navegar  ENTER: Usar  ESC: Voltar", width - 350, height - 50);
 }
 
+function isFullscreenWindow() {
+  return (
+    Math.abs(window.innerWidth - screen.width) <= 2 &&
+    Math.abs(window.innerHeight - screen.height) <= 2
+  );
+}
+
 function menuScale() {
-  return height / MENU_LAYOUT.referenceHeight;
+  const base = height / MENU_LAYOUT.referenceHeight;
+  return isFullscreenWindow() ? base * MENU_LAYOUT.fullscreenScale : base;
 }
 
 function drawMenuOverlay() {

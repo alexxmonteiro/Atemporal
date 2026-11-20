@@ -11,7 +11,8 @@ class Camera {
 
   getTarget(player) {
     const center = player.center;
-    return { x: center.x - width / 2, y: center.y - height / 2 };
+    const view = getGameViewport();
+    return { x: center.x - view.w / 2, y: center.y - view.h / 2 };
   }
 
   snapTo(player) {

@@ -50,11 +50,11 @@ const LUCK_HIT_BONUS = 0.01;
 const ENEMY_LUCK_DODGE_BONUS = 0.005;
 const MIN_HIT_CHANCE = 1 / 9;
 const SECTION_COLLISION_MARGIN = 30;
-const NOTICE_DURATION_MS = 2500;
+const TERMINAL_LOG_LIMIT = 50;
 
 const MENU_SLIDE = Object.freeze({
   durationMs: 250,
-  offsetRatio: 0.18,
+  offsetRatio: 0.30,
 });
 
 const BATTLE_BALANCE = Object.freeze({
@@ -104,10 +104,7 @@ const battle = {
   levelUpMessage: "",
 };
 
-const notice = {
-  text: "",
-  expiresAt: 0,
-};
+const terminalLog = [];
 
 const unlockedLocks = new Set();
 

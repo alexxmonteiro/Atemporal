@@ -100,8 +100,14 @@ function formatItemDetails(item) {
 }
 
 function showNotice(text) {
-  notice.text = text;
-  notice.expiresAt = millis() + NOTICE_DURATION_MS;
+  if (terminalLog[terminalLog.length - 1] === text) return;
+
+  terminalLog.push(text);
+  if (terminalLog.length > TERMINAL_LOG_LIMIT) terminalLog.shift();
+}
+
+function clearTerminalLog() {
+  terminalLog.length = 0;
 }
 
 function drawInteractionPrompt(centerX, topY, label = "Pressione E para interagir") {

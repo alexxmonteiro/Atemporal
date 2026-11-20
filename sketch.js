@@ -1,5 +1,10 @@
 async function setup() {
-  createCanvas(windowWidth, windowHeight);
+  const canvas = createCanvas(windowWidth, windowHeight);
+  canvas.style("display", "block");
+  document.body.style.margin = "0";
+  document.body.style.overflow = "hidden";
+  document.body.style.backgroundColor = HUD_COLORS.background;
+
   await document.fonts.load(`16px ${FONT_FAMILY}`);
   textFont(FONT_FAMILY);
   mainCharacter = new MainCharacter(PLAYER_START.x, PLAYER_START.y);
@@ -9,6 +14,7 @@ async function setup() {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  if (mainCharacter && gameCamera) gameCamera.snapTo(mainCharacter);
 }
 
 function createSection(zone, obstacleRects) {
@@ -105,7 +111,7 @@ function resetGameToStart() {
   inventory = [];
   companions = [];
   unlockedLocks.clear();
-  notice.expiresAt = 0;
+  clearTerminalLog();
   setupLevel(currentLevel);
 }
 
@@ -202,8 +208,31 @@ function drawStateOverlay() {
   }
 }
 
+function drawWorld() {
+  const view = getGameViewport();
+
+  push();
+  drawingContext.beginPath();
+  drawingContext.rect(view.x, view.y, view.w, view.h);
+  drawingContext.clip();
+  translate(view.x, view.y);
+  gameCamera.apply();
+  noStroke();
+  for (const obstacle of obstacles) {
+    obstacle.draw();
+  }
+  updateAndDrawEnemies();
+  drawDoors();
+  drawPickups(companionPickups);
+  drawPickups(itemPickups);
+  mainCharacter.draw();
+  pop();
+}
+
 function draw() {
-  background("#ffffff");
+  background(HUD_COLORS.background);
+
+  if (!gameCamera || levelSections.length === 0) return;
 
   if (gameState === GameState.PLAYING) {
     mainCharacter.move(collisionBodies);
@@ -216,20 +245,11 @@ function draw() {
 
   push();
   translate(menuWorldOffset(), 0);
-  gameCamera.apply();
-  noStroke();
-  for (const obstacle of obstacles) {
-    obstacle.draw();
-  }
-  updateAndDrawEnemies();
-  drawDoors();
-  drawPickups(companionPickups);
-  drawPickups(itemPickups);
-  mainCharacter.draw();
+  drawHudBackdrop();
+  drawWorld();
+  drawHudFrame();
   pop();
 
   drawMenuDim();
-  drawHud();
   drawStateOverlay();
-  drawNotice();
 }
