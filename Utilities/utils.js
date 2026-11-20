@@ -99,8 +99,8 @@ function formatItemDetails(item) {
   return ` (${item.effectType}: +${item.effectValue})`;
 }
 
-function showNotice(text) {
-  if (terminalLog[terminalLog.length - 1] === text) return;
+function showNotice(text, allowRepeat = false) {
+  if (!allowRepeat && terminalLog[terminalLog.length - 1] === text) return;
 
   terminalLog.push(text);
   if (terminalLog.length > TERMINAL_LOG_LIMIT) terminalLog.shift();

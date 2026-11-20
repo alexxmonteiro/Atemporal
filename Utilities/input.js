@@ -51,7 +51,7 @@ function tryUnlockDoor(door) {
   door.unlock();
   unlockedLocks.add(door.lockId);
   rebuildCollisionBodies();
-  showNotice(`Você usou ${usedKey.name} e destrancou a porta!`);
+  showNotice(`Você usou ${usedKey.name} e destrancou a porta!`, true);
 }
 
 function interactWithDoor(door) {
@@ -59,6 +59,23 @@ function interactWithDoor(door) {
     tryUnlockDoor(door);
   } else {
     changeLevel(door.direction);
+  }
+}
+
+function collectCompanionPickup(pickup) {
+  pickup.collected = true;
+  companions.push(pickup.toCompanion());
+  showNotice(`Você recrutou o companheiro ${pickup.name}!`, true);
+}
+
+function collectItemPickup(pickup) {
+  pickup.collected = true;
+  inventory.push(pickup.toItem());
+
+  if (pickup.effectType === ItemEffect.KEY) {
+    showNotice(`Você encontrou ${pickup.name}.`, true);
+  } else {
+    showNotice(`Você coletou ${pickup.name}.`, true);
   }
 }
 
@@ -71,15 +88,13 @@ function tryInteract() {
 
   const companionPickup = findCollectable(companionPickups);
   if (companionPickup) {
-    companionPickup.collected = true;
-    companions.push(companionPickup.toCompanion());
+    collectCompanionPickup(companionPickup);
     return;
   }
 
   const itemPickup = findCollectable(itemPickups);
   if (itemPickup) {
-    itemPickup.collected = true;
-    inventory.push(itemPickup.toItem());
+    collectItemPickup(itemPickup);
   }
 }
 
