@@ -9,6 +9,11 @@ class MainCharacter {
     this.friction = 0.85;
     this.isFrozen = false;
 
+    this.inputX = 0;
+    this.inputY = 0;
+
+    this.animator = new PlayerAnimator();
+
     this.maxHp = 100;
     this.hp = 100;
     this.baseAttack = 10;
@@ -101,9 +106,14 @@ class MainCharacter {
     this.posY = y;
     this.vx = 0;
     this.vy = 0;
+    this.inputX = 0;
+    this.inputY = 0;
   }
 
   move(obstacles) {
+    this.inputX = 0;
+    this.inputY = 0;
+
     if (this.isFrozen) {
       this.acc = 0;
       this.vx = 0;
@@ -125,10 +135,11 @@ class MainCharacter {
 
   applyInput() {
     if (!keyIsPressed) return;
-    if (isLetterKey('a')) this.vx -= this.acc;
-    if (isLetterKey('d')) this.vx += this.acc;
-    if (isLetterKey('w')) this.vy -= this.acc;
-    if (isLetterKey('s')) this.vy += this.acc;
+
+    if (isLetterKey('a')) { this.vx -= this.acc; this.inputX -= 1; }
+    if (isLetterKey('d')) { this.vx += this.acc; this.inputX += 1; }
+    if (isLetterKey('w')) { this.vy -= this.acc; this.inputY -= 1; }
+    if (isLetterKey('s')) { this.vy += this.acc; this.inputY += 1; }
   }
 
   resolveHorizontalCollisions(obstacles) {
@@ -154,6 +165,11 @@ class MainCharacter {
   }
 
   draw() {
+    this.animator.update(this);
+
+    const drewSprite = this.animator.draw(this);
+    if (drewSprite) return;
+
     fill(COLORS.player);
     noStroke();
     rect(this.posX, this.posY, this.size, this.size);

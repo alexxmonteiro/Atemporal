@@ -16,6 +16,8 @@ async function setup() {
 
   await loadGameOverAssets();
 
+  await loadPlayerSprites();
+
   mainCharacter = new MainCharacter(PLAYER_START.x, PLAYER_START.y);
   gameCamera = new Camera(CAMERA_SMOOTHING);
   setupLevel(1);
