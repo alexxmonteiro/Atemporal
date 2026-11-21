@@ -1,6 +1,6 @@
 function keyPressed() {
   if (gameState === GameState.GAME_OVER) {
-    if (isLetterKey('r')) resetGameToStart();
+    if (isLetterKey('r')) requestGameOverRetry();
     return;
   }
 

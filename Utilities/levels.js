@@ -90,10 +90,10 @@ const RAW_LEVELS = [
       { ...area(-411, -1380, -291, -1320), type: DoorType.TRIGGER, link: [9, 10] },
     ],
     enemies: [
-      { x: -50, y: -1484, name: "Inimigo Sombrio", maxHp: 50, direction: 'DOWN' },
-      { x: -488, y: -504, name: "Inimigo Sombrio", maxHp: 50, direction: 'DOWN' },
-      { x: -164, y: -296, name: "Inimigo Sombrio", maxHp: 50, direction: 'DOWN' },
-      { x: 496, y: -558, name: "Inimigo Sombrio", maxHp: 50, direction: 'DOWN' },
+      { x: -50, y: -1484, name: "Inimigo Sombrio", maxHp: 9999, direction: 'DOWN' },
+      { x: -488, y: -504, name: "Inimigo Sombrio", maxHp: 9999, direction: 'DOWN' },
+      { x: -164, y: -296, name: "Inimigo Sombrio", maxHp: 9999, direction: 'DOWN' },
+      { x: 496, y: -558, name: "Inimigo Sombrio", maxHp: 9999, direction: 'DOWN' },
     ],
   },
   {
